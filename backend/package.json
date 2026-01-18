@@ -1,0 +1,20 @@
+{
+  "name": "pmt-backend",
+  "version": "1.0.0",
+  "description": "Backend API for Project Management Tool using blue.cc",
+  "main": "server.js",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "nodemon --ignore tasks.json server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "graphql-request": "^6.1.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
