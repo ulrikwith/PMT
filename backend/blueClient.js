@@ -352,16 +352,40 @@ class BlueClient {
       const result = await this.query(query, { todoListId });
       
       if (result.success) {
-        const tasks = result.data.todoList.todos.map(todo => ({
-          id: todo.id,
-          title: todo.title,
-          description: todo.text || '',
-          status: todo.done ? 'Done' : 'In Progress',
-          tags: todo.tags ? todo.tags.map(t => t.name) : [],
-          position: todo.position,
-          createdAt: todo.createdAt,
-          updatedAt: todo.updatedAt
-        }));
+        const tasks = result.data.todoList.todos.map(todo => {
+          // Parse rich metadata from text field
+          let description = todo.text || '';
+          let workData = {};
+
+          try {
+            const parsed = JSON.parse(todo.text || '{}');
+            if (parsed.workData) {
+              // This is a rich task with metadata
+              description = parsed.desc || '';
+              workData = parsed.workData;
+            }
+          } catch (e) {
+            // Not JSON, treat as plain text description
+            description = todo.text || '';
+          }
+
+          return {
+            id: todo.id,
+            title: todo.title,
+            description,
+            status: todo.done ? 'Done' : 'In Progress',
+            tags: todo.tags ? todo.tags.map(t => t.name) : [],
+            position: todo.position,
+            createdAt: todo.createdAt,
+            updatedAt: todo.updatedAt,
+            // Include rich metadata
+            workType: workData.workType,
+            targetOutcome: workData.targetOutcome,
+            activities: workData.activities || [],
+            resources: workData.resources || {},
+            ...(workData.position && { position: workData.position })
+          };
+        });
         
         // Sync to local storage as cache
         // We only overwrite tasks, but keep local tags if any custom ones exist that aren't synced? 
@@ -523,29 +547,105 @@ class BlueClient {
     if (updates.title) input.title = updates.title;
     if (updates.status) input.done = updates.status === 'Done';
     if (updates.dueDate) input.duedate = updates.dueDate;
-    
-    // If updating rich fields, we need to fetch current, merge, and save to text
-    // This is expensive/complex for a simple update. 
-    // For V1 cloud sync, we'll skip deep merging of JSON in 'text' unless description changes.
-    // Assuming local mode is primary for "Work Board" metadata for now.
-    if (updates.description) input.text = updates.description; // We lose meta here in cloud! 
-    // TODO: Improve Cloud Sync for Meta. For now, Local Mode is safer for this feature.
+
+    // Handle rich metadata updates properly
+    // If any description or workData fields are being updated, we need to:
+    // 1. Fetch current task to get existing metadata
+    // 2. Merge updates with existing data
+    // 3. Serialize back to text field
+
+    const hasRichUpdates = updates.description !== undefined || updates.workType !== undefined ||
+                           updates.targetOutcome !== undefined || updates.activities !== undefined ||
+                           updates.resources !== undefined || updates.position !== undefined;
+
+    if (hasRichUpdates) {
+      try {
+        // Fetch current task from cloud to get existing metadata
+        const currentTaskQuery = `
+          query GetTodo($id: ID!) {
+            todo(id: $id) {
+              text
+            }
+          }
+        `;
+        const currentResult = await this.query(currentTaskQuery, { id: taskId });
+
+        let currentWorkData = {};
+        let currentDescription = '';
+
+        if (currentResult.success && currentResult.data.todo.text) {
+          try {
+            const parsed = JSON.parse(currentResult.data.todo.text);
+            if (parsed.workData) {
+              currentDescription = parsed.desc || '';
+              currentWorkData = parsed.workData;
+            } else {
+              currentDescription = currentResult.data.todo.text;
+            }
+          } catch (e) {
+            currentDescription = currentResult.data.todo.text;
+          }
+        }
+
+        // Merge updates with existing data
+        const mergedWorkData = {
+          workType: updates.workType !== undefined ? updates.workType : currentWorkData.workType,
+          targetOutcome: updates.targetOutcome !== undefined ? updates.targetOutcome : currentWorkData.targetOutcome,
+          activities: updates.activities !== undefined ? updates.activities : currentWorkData.activities,
+          resources: updates.resources !== undefined ? updates.resources : currentWorkData.resources,
+          position: updates.position !== undefined ? updates.position : currentWorkData.position
+        };
+
+        const mergedDescription = updates.description !== undefined ? updates.description : currentDescription;
+
+        // Serialize back to text
+        input.text = JSON.stringify({
+          desc: mergedDescription,
+          workData: mergedWorkData
+        });
+      } catch (error) {
+        console.error('Error merging rich metadata:', error);
+        // Fallback to simple description update if merge fails
+        if (updates.description) input.text = updates.description;
+      }
+    }
 
     const result = await this.query(mutation, { id: taskId, input });
     
     if (result.success) {
         const todo = result.data.editTodo;
+
+        // Parse rich metadata from returned text field
+        let description = todo.text || '';
+        let workData = {};
+
+        try {
+          const parsed = JSON.parse(todo.text || '{}');
+          if (parsed.workData) {
+            description = parsed.desc || '';
+            workData = parsed.workData;
+          }
+        } catch (e) {
+          description = todo.text || '';
+        }
+
         return {
             success: true,
             data: {
                 id: todo.id,
                 title: todo.title,
-                description: todo.text, // Parsing needed if we implement read-back
+                description,
                 status: todo.done ? 'Done' : 'In Progress',
                 dueDate: todo.duedate,
                 tags: todo.tags ? todo.tags.map(t => t.name) : [],
                 updatedAt: todo.updatedAt,
-                // Pass back updates so frontend stays in sync
+                // Include rich metadata
+                workType: workData.workType,
+                targetOutcome: workData.targetOutcome,
+                activities: workData.activities || [],
+                resources: workData.resources || {},
+                position: workData.position,
+                // Pass back any updates that weren't in the response
                 ...updates
             }
         };
