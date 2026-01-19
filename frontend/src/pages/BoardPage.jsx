@@ -9,7 +9,7 @@ import ReactFlow, {
   Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, LayoutGrid } from 'lucide-react';
+import { Plus, LayoutGrid, Lock, Unlock } from 'lucide-react';
 import dagre from 'dagre';
 
 import WorkNode from '../components/WorkflowBoard/WorkNode';
@@ -34,6 +34,7 @@ export default function BoardPage() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [connectionModal, setConnectionModal] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [isInteractive, setIsInteractive] = useState(true);
 
   // Load Works from Backend
   useEffect(() => {
@@ -295,10 +296,24 @@ export default function BoardPage() {
           onNodeClick={onNodeClick}
           nodeTypes={nodeTypes}
           fitView
+          nodesDraggable={isInteractive}
+          nodesConnectable={isInteractive}
+          elementsSelectable={isInteractive}
           className="bg-slate-950"
         >
           <Background color="#1e293b" gap={20} />
-          <Controls className="bg-slate-800/60 border border-white/10 rounded-lg fill-white" />
+          <Controls
+            style={{
+              backgroundColor: 'rgba(15, 23, 42, 0.9)',
+              border: '1px solid rgba(255, 255, 255, 0.1)',
+              borderRadius: '0.5rem',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
+            }}
+            className="[&_button]:!bg-slate-900/90 [&_button]:!border-b [&_button]:!border-white/10 [&_button_svg]:!fill-slate-400 [&_button:hover]:!bg-slate-800 [&_button:hover_svg]:!fill-slate-300 [&_button[title='toggle_interactivity']]:!hidden"
+          />
+          <style>{`
+            .react-flow__controls-interactive { display: none !important; }
+          `}</style>
           <MiniMap
             className="bg-slate-900/60 border border-white/10 rounded-lg"
             nodeColor={(node) => {
@@ -316,13 +331,24 @@ export default function BoardPage() {
               <Plus size={18} />
               Add Work
             </button>
-            
+
             <button
               onClick={onLayout}
               className="px-4 py-2 bg-slate-800/60 border border-white/10 text-slate-300 font-medium rounded-lg hover:border-blue-500/50 transition-all flex items-center gap-2"
             >
               <LayoutGrid size={18} />
               Auto Layout
+            </button>
+
+            <button
+              onClick={() => setIsInteractive(!isInteractive)}
+              className="px-4 py-2 bg-slate-800/60 border border-white/10 text-slate-300 font-medium rounded-lg hover:border-blue-500/50 transition-all flex items-center gap-2 relative group"
+              title={isInteractive ? "Lock" : "Unlock"}
+            >
+              {isInteractive ? <Unlock size={18} /> : <Lock size={18} />}
+              <span className="absolute bottom-full mb-2 hidden group-hover:block bg-slate-900 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                {isInteractive ? "Lock" : "Unlock"}
+              </span>
             </button>
           </Panel>
         </ReactFlow>
