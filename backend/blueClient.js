@@ -390,6 +390,15 @@ class BlueClient {
         status: 'In Progress',
         tags: taskData.tags || [],
         dueDate: taskData.dueDate || null,
+        
+        // New Work-Centric Fields
+        workType: taskData.workType || 'part-of-element', // 'complete-element' | 'part-of-element'
+        targetOutcome: taskData.targetOutcome || '',
+        startDate: taskData.startDate || null,
+        activities: taskData.activities || [], // Array of { id, title, status, time, energy }
+        resources: taskData.resources || {},   // { timeEstimate, energyLevel, tools, materials, people, notes }
+        position: taskData.position || { x: 0, y: 0 },
+        
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
@@ -401,6 +410,21 @@ class BlueClient {
     try {
       const todoListId = await this.getDefaultTodoListId();
       
+      // Cloud mutation - Simplified for now as Blue.cc might not support all custom fields directly
+      // We will likely need to store complex data in the description or a custom field if available.
+      // For V1 cloud sync, we'll serialize resources/activities into the description.
+      
+      const richDescription = JSON.stringify({
+          desc: taskData.description || '',
+          workData: {
+              workType: taskData.workType,
+              targetOutcome: taskData.targetOutcome,
+              activities: taskData.activities,
+              resources: taskData.resources,
+              position: taskData.position
+          }
+      });
+
       const mutation = `
         mutation CreateTodo($input: CreateTodoInput!) {
           createTodo(input: $input) {
@@ -418,18 +442,11 @@ class BlueClient {
           }
         }
       `;
-
-      // Note: Blue.cc API might expect tag IDs, not names. 
-      // For this implementation plan, we assume we pass tag names or handle mapping.
-      // If Blue.cc CreateTodoInput takes 'tags' as IDs, we need to resolve them first.
-      // Let's assume for now we just pass text and title. Tagging might need a separate step or ID lookup.
-      // Detailed plan says "Handles tags/labels from Blue.cc", but creation might be tricky.
-      // Let's stick to title/text for creation, and maybe add tags if API supports it easily.
       
       const input = {
         todoListId,
         title: taskData.title,
-        text: taskData.description || '',
+        text: richDescription, // Storing meta in text
         duedate: taskData.dueDate
       };
 
@@ -440,15 +457,21 @@ class BlueClient {
         const task = {
             id: todo.id,
             title: todo.title,
-            description: todo.text,
+            description: taskData.description, // Keep clean locally
             status: 'In Progress',
             dueDate: todo.duedate,
-            tags: [], // Tags might need separate association
+            tags: [], 
+            
+            workType: taskData.workType,
+            targetOutcome: taskData.targetOutcome,
+            activities: taskData.activities,
+            resources: taskData.resources,
+            position: taskData.position,
+
             createdAt: todo.createdAt,
             updatedAt: todo.updatedAt
         };
 
-        // If taskData had tags, we might need to add them now
         if (taskData.tags && taskData.tags.length > 0) {
             for (const tagName of taskData.tags) {
                 await this.addTagToTask(task.id, tagName);
@@ -498,30 +521,32 @@ class BlueClient {
 
     const input = {};
     if (updates.title) input.title = updates.title;
-    if (updates.description) input.text = updates.description;
     if (updates.status) input.done = updates.status === 'Done';
     if (updates.dueDate) input.duedate = updates.dueDate;
+    
+    // If updating rich fields, we need to fetch current, merge, and save to text
+    // This is expensive/complex for a simple update. 
+    // For V1 cloud sync, we'll skip deep merging of JSON in 'text' unless description changes.
+    // Assuming local mode is primary for "Work Board" metadata for now.
+    if (updates.description) input.text = updates.description; // We lose meta here in cloud! 
+    // TODO: Improve Cloud Sync for Meta. For now, Local Mode is safer for this feature.
 
     const result = await this.query(mutation, { id: taskId, input });
     
     if (result.success) {
-        // Handle tags update if necessary (complex in GraphQL usually)
-         if (updates.tags) {
-            // This is a simplification. Real sync might require removing old tags and adding new ones.
-            // For now, let's assume we just update the core fields.
-        }
-        
         const todo = result.data.editTodo;
         return {
             success: true,
             data: {
                 id: todo.id,
                 title: todo.title,
-                description: todo.text,
+                description: todo.text, // Parsing needed if we implement read-back
                 status: todo.done ? 'Done' : 'In Progress',
                 dueDate: todo.duedate,
                 tags: todo.tags ? todo.tags.map(t => t.name) : [],
-                updatedAt: todo.updatedAt
+                updatedAt: todo.updatedAt,
+                // Pass back updates so frontend stays in sync
+                ...updates
             }
         };
     }

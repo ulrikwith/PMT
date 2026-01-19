@@ -1,0 +1,465 @@
+import React, { useState, useEffect } from 'react';
+import { X, Plus, Trash2, Clock, Wrench, Users, BookOpen } from 'lucide-react';
+
+// Reuse elements structure or import shared constants
+const ELEMENTS = {
+  content: ['Books', 'Substack', 'Newsletter', 'Stone', 'Other'],
+  practice: ['Walk', 'Stone', 'B2B', 'Other'],
+  community: ['BOPA', 'Website', 'Other'],
+  marketing: ['First 30', 'Planning', 'Other'],
+  admin: ['Accounting', 'Development', 'Mission', 'Other'],
+};
+
+export default function WorkWizardPanel({ node, onClose, onSave }) {
+  // If node is null, don't render (handled by parent conditional usually)
+  if (!node) return null;
+
+  const [step, setStep] = useState(1);
+  const [workData, setWorkData] = useState({
+    label: node.data.label !== 'New Work' ? node.data.label : '',
+    description: node.data.description || '',
+    element: node.data.element || '',
+    dimension: node.data.dimension || '',
+    workType: node.data.workType || 'part-of-element',
+    targetOutcome: node.data.targetOutcome || '',
+    startDate: node.data.startDate || '',
+    targetCompletion: node.data.targetCompletion || '',
+    activities: node.data.activities || [],
+    resources: node.data.resources || {
+      timeEstimate: '',
+      energyLevel: 'focused',
+      tools: [],
+      materials: '',
+      people: [],
+      notes: '',
+    },
+  });
+
+  // Reset state when node changes
+  useEffect(() => {
+      setStep(1);
+      setWorkData({
+        label: node.data.label !== 'New Work' ? node.data.label : '',
+        description: node.data.description || '',
+        element: node.data.element || '',
+        dimension: node.data.dimension || '',
+        workType: node.data.workType || 'part-of-element',
+        targetOutcome: node.data.targetOutcome || '',
+        startDate: node.data.startDate || '',
+        targetCompletion: node.data.targetCompletion || '',
+        activities: node.data.activities || [],
+        resources: node.data.resources || {
+          timeEstimate: '',
+          energyLevel: 'focused',
+          tools: [],
+          materials: '',
+          people: [],
+          notes: '',
+        },
+      });
+  }, [node.id]);
+
+  const handleSave = () => {
+    // If saving 'New Work' with no name, default it
+    const finalLabel = workData.label.trim() || 'New Work';
+    onSave({
+        ...workData,
+        label: finalLabel,
+        status: finalLabel !== 'New Work' ? 'in-progress' : 'empty' // Simple status update logic
+    });
+  };
+
+  const getElements = (dim) => ELEMENTS[dim] || [];
+
+  return (
+    <div className="absolute top-0 right-0 w-[480px] h-full glass-panel border-l border-white/5 shadow-2xl transform translate-x-0 transition-transform duration-300 flex flex-col z-20 bg-slate-950/90 backdrop-blur-md">
+      {/* Header */}
+      <div className="p-6 border-b border-white/5 flex items-center justify-between">
+        <div>
+          <h2 className="text-xl font-bold text-white">
+            {node.data.status === 'empty' ? 'Define Work' : 'Edit Work'}
+          </h2>
+          <p className="text-sm text-slate-400 mt-1">Step {step} of 4</p>
+        </div>
+        <button
+          onClick={onClose}
+          className="p-2 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
+        >
+          <X size={20} />
+        </button>
+      </div>
+
+      {/* Step Indicator */}
+      <div className="px-6 py-4 border-b border-white/5">
+        <div className="flex items-center gap-2">
+          {[1, 2, 3, 4].map((s) => (
+            <div
+              key={s}
+              className={`flex-1 h-1 rounded-full transition-all ${
+                s <= step ? 'bg-blue-500' : 'bg-slate-800'
+              }`}
+            />
+          ))}
+        </div>
+        <div className="flex justify-between mt-2 text-xs font-medium">
+          <span className={step >= 1 ? 'text-blue-500' : 'text-slate-500'}>Define</span>
+          <span className={step >= 2 ? 'text-blue-500' : 'text-slate-500'}>Activities</span>
+          <span className={step >= 3 ? 'text-blue-500' : 'text-slate-500'}>Resources</span>
+          <span className={step >= 4 ? 'text-blue-500' : 'text-slate-500'}>Review</span>
+        </div>
+      </div>
+
+      {/* Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto p-6">
+        {/* STEP 1: Define Work */}
+        {step === 1 && (
+          <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Work Name *
+              </label>
+              <input
+                type="text"
+                value={workData.label}
+                onChange={(e) => setWorkData({ ...workData, label: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                placeholder="e.g., Chapter 12: The Body as Classroom"
+                autoFocus
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Description
+              </label>
+              <textarea
+                value={workData.description}
+                onChange={(e) => setWorkData({ ...workData, description: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all resize-none"
+                rows={3}
+                placeholder="What is this Work about?"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Element * (in {workData.dimension})
+              </label>
+              <select
+                value={workData.element}
+                onChange={(e) => setWorkData({ ...workData, element: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+              >
+                <option value="">Select Element...</option>
+                {getElements(workData.dimension).map((el) => (
+                  <option key={el} value={el}>{el}</option>
+                ))}
+              </select>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Start Date
+                </label>
+                <input
+                  type="date"
+                  value={workData.startDate}
+                  onChange={(e) => setWorkData({ ...workData, startDate: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-slate-300 mb-2">
+                  Target Completion
+                </label>
+                <input
+                  type="date"
+                  value={workData.targetCompletion}
+                  onChange={(e) => setWorkData({ ...workData, targetCompletion: e.target.value })}
+                  className="w-full px-4 py-2.5 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 2: Activities */}
+        {step === 2 && (
+          <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
+            <div className="flex items-center justify-between">
+              <h3 className="text-lg font-semibold text-white">Activities</h3>
+              <button
+                onClick={() => {
+                  setWorkData({
+                    ...workData,
+                    activities: [
+                      ...workData.activities,
+                      { id: Date.now(), title: '', timeEstimate: '', status: 'todo' },
+                    ],
+                  });
+                }}
+                className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 text-blue-500 rounded-lg hover:bg-blue-500/30 transition-all flex items-center gap-2 text-sm"
+              >
+                <Plus size={16} />
+                Add Activity
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              {workData.activities.map((activity, index) => (
+                <div key={activity.id} className="glass-panel rounded-lg p-4 border border-white/10">
+                  <div className="flex items-start gap-3">
+                    <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-700/30 border border-slate-700/30 text-slate-400 font-semibold text-sm flex-shrink-0 mt-1">
+                      {index + 1}
+                    </div>
+                    <div className="flex-1 space-y-3">
+                      <input
+                        type="text"
+                        value={activity.title}
+                        onChange={(e) => {
+                          const updated = [...workData.activities];
+                          updated[index].title = e.target.value;
+                          setWorkData({ ...workData, activities: updated });
+                        }}
+                        className="w-full bg-transparent border-none text-white font-medium focus:outline-none placeholder-slate-500"
+                        placeholder="Activity name..."
+                        autoFocus={!activity.title}
+                      />
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="number"
+                          value={activity.timeEstimate}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].timeEstimate = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-24 px-3 py-1.5 bg-slate-900/60 border border-white/10 rounded text-sm text-white focus:border-blue-500/50 focus:outline-none"
+                          placeholder="Hours"
+                        />
+                        <span className="text-xs text-slate-500">hours</span>
+                        
+                        <select 
+                            value={activity.status}
+                            onChange={(e) => {
+                                const updated = [...workData.activities];
+                                updated[index].status = e.target.value;
+                                setWorkData({ ...workData, activities: updated });
+                            }}
+                            className="bg-slate-900/60 border border-white/10 rounded text-xs text-slate-300 px-2 py-1"
+                        >
+                            <option value="todo">Todo</option>
+                            <option value="in-progress">In Progress</option>
+                            <option value="done">Done</option>
+                        </select>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => {
+                        setWorkData({
+                          ...workData,
+                          activities: workData.activities.filter((_, i) => i !== index),
+                        });
+                      }}
+                      className="p-1 rounded text-slate-500 hover:text-red-500 transition-colors mt-1"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              {workData.activities.length === 0 && (
+                <div className="text-center py-8 text-slate-500 text-sm">
+                  No activities yet. Click "Add Activity" to start.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* STEP 3: Resources */}
+        {step === 3 && (
+          <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
+            <h3 className="text-lg font-semibold text-white">Resources Needed</h3>
+
+            {/* Time & Energy */}
+            <div className="glass-panel rounded-xl p-5 border border-blue-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <Clock className="text-blue-500" size={20} />
+                <h4 className="text-sm font-semibold text-white">Time & Energy</h4>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-2">
+                    Total Hours
+                  </label>
+                  <input
+                    type="number"
+                    value={workData.resources.timeEstimate}
+                    onChange={(e) =>
+                      setWorkData({
+                        ...workData,
+                        resources: { ...workData.resources, timeEstimate: e.target.value },
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:outline-none"
+                    placeholder="20"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-slate-400 mb-2">
+                    Energy Level
+                  </label>
+                  <select
+                    value={workData.resources.energyLevel}
+                    onChange={(e) =>
+                      setWorkData({
+                        ...workData,
+                        resources: { ...workData.resources, energyLevel: e.target.value },
+                      })
+                    }
+                    className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:outline-none"
+                  >
+                    <option value="deep">Deep work</option>
+                    <option value="focused">Focused work</option>
+                    <option value="light">Light work</option>
+                    <option value="admin">Admin</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Tools */}
+            <div className="glass-panel rounded-xl p-5 border border-purple-500/20">
+              <div className="flex items-center gap-3 mb-4">
+                <Wrench className="text-purple-500" size={20} />
+                <h4 className="text-sm font-semibold text-white">Tools & Software</h4>
+              </div>
+              <div className="space-y-3">
+                <div className="flex flex-wrap gap-2">
+                  {workData.resources.tools?.map((tool, index) => (
+                    <span
+                      key={index}
+                      className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-medium text-purple-500 flex items-center gap-2"
+                    >
+                      {tool}
+                      <button
+                        onClick={() => {
+                          const updated = workData.resources.tools.filter((_, i) => i !== index);
+                          setWorkData({
+                            ...workData,
+                            resources: { ...workData.resources, tools: updated },
+                          });
+                        }}
+                      >
+                        <X size={12} className="cursor-pointer hover:text-purple-300" />
+                      </button>
+                    </span>
+                  ))}
+                </div>
+                <input
+                  type="text"
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && e.target.value.trim()) {
+                      setWorkData({
+                        ...workData,
+                        resources: {
+                          ...workData.resources,
+                          tools: [...(workData.resources.tools || []), e.target.value.trim()],
+                        },
+                      });
+                      e.target.value = '';
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-purple-500/50 focus:outline-none"
+                  placeholder="Type tool name and press Enter..."
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* STEP 4: Review */}
+        {step === 4 && (
+          <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
+            <h3 className="text-lg font-semibold text-white">Review Work</h3>
+
+            <div className="glass-panel rounded-xl p-5 space-y-4">
+              <div>
+                <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                  Work Name
+                </div>
+                <div className="text-white font-semibold">{workData.label || 'Untitled'}</div>
+              </div>
+
+              {workData.description && (
+                <div>
+                  <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                    Description
+                  </div>
+                  <div className="text-slate-300 text-sm">{workData.description}</div>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                    Element
+                  </div>
+                  <div className="text-white">{workData.element || 'Not set'}</div>
+                </div>
+                <div>
+                  <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
+                    Activity Count
+                  </div>
+                  <div className="text-white">
+                    {workData.activities.length} activities
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
+              <p className="text-sm text-blue-400">
+                Clicking "Save" will update the Work node on the canvas and create {workData.activities.length} activity child nodes.
+              </p>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Navigation */}
+      <div className="p-6 border-t border-white/5 flex justify-between bg-slate-900/50">
+        <button
+          onClick={() => {
+            if (step > 1) setStep(step - 1);
+            else onClose();
+          }}
+          className="px-6 py-2.5 text-slate-400 font-medium rounded-lg hover:text-white hover:bg-slate-800/40 transition-all"
+        >
+          {step === 1 ? 'Cancel' : '← Back'}
+        </button>
+
+        {step < 4 ? (
+          <button
+            onClick={() => setStep(step + 1)}
+            disabled={step === 1 && !workData.element}
+            className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            Next →
+          </button>
+        ) : (
+          <button
+            onClick={handleSave}
+            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all"
+          >
+            Save Work ✓
+          </button>
+        )}
+      </div>
+    </div>
+  );
+}

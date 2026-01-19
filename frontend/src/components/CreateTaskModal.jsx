@@ -1,13 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, X, ArrowRight, ArrowLeft, Calendar, Tag, Layers, FileText } from 'lucide-react';
+import { 
+  Plus, X, ArrowRight, ArrowLeft, Calendar, Tag, Layers, FileText, 
+  Clock, Zap, Wrench, Users, BookOpen, Link2, Lock, ArrowLeftRight 
+} from 'lucide-react';
 import TagSelector from './TagSelector';
 import api from '../services/api';
 
 const STEPS = [
-  { id: 1, title: 'Placement', icon: Layers, description: 'Select Dimension' },
-  { id: 2, title: 'Tagging', icon: Tag, description: 'Add Tags' },
-  { id: 3, title: 'Details', icon: FileText, description: 'Resources & Info' },
-  { id: 4, title: 'Dates', icon: Calendar, description: 'Schedule' }
+  { id: 1, title: 'Placement', icon: Layers },
+  { id: 2, title: 'Define', icon: FileText },
+  { id: 3, title: 'Activities', icon: Tag }, // Using Tag icon for activities/tasks list for now
+  { id: 4, title: 'Resources', icon: Wrench },
+  { id: 5, title: 'Connect', icon: Link2 }
 ];
 
 const DIMENSIONS_STRUCTURE = [
@@ -69,23 +73,42 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
 
   // Form State
   const [selectedDimension, setSelectedDimension] = useState(null);
-  const [selectedSubDimension, setSelectedSubDimension] = useState(null);
-  const [tags, setTags] = useState([]);
+  const [selectedElement, setSelectedElement] = useState(null); // was selectedSubDimension
+  
+  // Define
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [dueDate, setDueDate] = useState('');
+  const [workType, setWorkType] = useState('part-of-element');
+  const [targetOutcome, setTargetOutcome] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [dueDate, setDueDate] = useState(''); // targetCompletion
+
+  // Activities
+  const [activities, setActivities] = useState([]); // [{id, title, time, energy}]
+  const [newActivity, setNewActivity] = useState('');
+
+  // Resources
+  const [timeEstimate, setTimeEstimate] = useState('');
+  const [energyLevel, setEnergyLevel] = useState('Focused work');
+  const [tools, setTools] = useState([]);
+  const [newTool, setNewTool] = useState('');
+  const [people, setPeople] = useState([]);
+  const [newPerson, setNewPerson] = useState('');
+  const [materials, setMaterials] = useState('');
+
+  // Connect (Simple list for now, ideally search)
+  const [connections, setConnections] = useState([]); 
 
   // Initialize with passed data
   useEffect(() => {
-      if (isOpen && initialData) {
-          // Check if initialData.tag matches a dimension or subdimension
-          const tag = initialData.tag;
-          if (tag) {
+      if (isOpen) {
+          if (initialData && initialData.tag) {
+              const tag = initialData.tag;
               const parent = DIMENSIONS_STRUCTURE.find(d => d.id === tag || d.children.some(c => c.id === tag));
               if (parent) {
                   setSelectedDimension(parent.id);
                   if (parent.id !== tag) {
-                      setSelectedSubDimension(tag);
+                      setSelectedElement(tag);
                   }
               }
           }
@@ -95,41 +118,50 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
   const resetForm = () => {
     setStep(1);
     setSelectedDimension(null);
-    setSelectedSubDimension(null);
-    setTags([]);
+    setSelectedElement(null);
     setTitle('');
     setDescription('');
+    setActivities([]);
+    setTools([]);
+    setPeople([]);
     setDueDate('');
     onClose();
   };
 
-  const handleNext = () => {
-    if (step < 4) setStep(step + 1);
-  };
-
-  const handleBack = () => {
-    if (step > 1) setStep(step - 1);
-  };
+  const handleNext = () => { if (step < 5) setStep(step + 1); };
+  const handleBack = () => { if (step > 1) setStep(step - 1); };
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
     
     setIsSubmitting(true);
     try {
-      // Auto-add dimension tags if not already present
-      const finalTags = [...new Set([...tags, selectedDimension, selectedSubDimension].filter(Boolean))];
+      const finalTags = [...new Set([selectedDimension, selectedElement].filter(Boolean))];
       
+      const resources = {
+          timeEstimate,
+          energyLevel,
+          tools,
+          materials,
+          people
+      };
+
       await api.createTask({ 
         title, 
         description, 
         tags: finalTags,
-        dueDate
+        dueDate, // Target completion
+        startDate,
+        workType,
+        targetOutcome,
+        activities,
+        resources
       });
       
       if (onTaskCreated) onTaskCreated();
       resetForm();
     } catch (e) {
-        console.error("Failed to create task", e);
+        console.error("Failed to create work", e);
     } finally {
       setIsSubmitting(false);
     }
@@ -137,46 +169,51 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
 
   if (!isOpen) return null;
 
+  // --- Step Renderers ---
+
   const renderStep1 = () => (
-    <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
-      <h4 className="text-lg font-medium text-white mb-4">Where does this belong?</h4>
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+      <h2 className="text-2xl font-bold text-white mb-4">Where does this Work belong?</h2>
       
-      <div className="grid grid-cols-2 gap-3">
-        {DIMENSIONS_STRUCTURE.map(dim => (
-          <button
-            key={dim.id}
-            onClick={() => {
-                setSelectedDimension(dim.id);
-                setSelectedSubDimension(null); // Reset sub
-            }}
-            className={`p-4 rounded-xl border text-left transition-all ${
-              selectedDimension === dim.id
-                ? 'bg-blue-500/20 border-blue-500/50 ring-1 ring-blue-500/50'
-                : 'bg-slate-800/40 border-white/5 hover:bg-slate-800/80 hover:border-white/10'
-            }`}
-          >
-            <div className={`text-sm font-semibold mb-1 ${selectedDimension === dim.id ? 'text-blue-400' : 'text-slate-300'}`}>
-                {dim.label}
-            </div>
-          </button>
-        ))}
+      {/* Dimension */}
+      <div>
+          <label className="block text-sm font-medium text-slate-300 mb-3">Dimension</label>
+          <div className="grid grid-cols-5 gap-3">
+            {DIMENSIONS_STRUCTURE.map(dim => (
+              <button
+                key={dim.id}
+                onClick={() => { setSelectedDimension(dim.id); setSelectedElement(null); }}
+                className={`p-4 rounded-lg flex flex-col items-center gap-2 border-2 transition-all ${
+                  selectedDimension === dim.id
+                    ? `border-${dim.color}-500 bg-${dim.color}-500/10`
+                    : 'border-transparent bg-slate-800/40 hover:bg-slate-800/60'
+                }`}
+              >
+                <div className={`w-3 h-3 rounded-full bg-${dim.color}-500`}></div>
+                <span className={`text-xs font-medium ${selectedDimension === dim.id ? 'text-white' : 'text-slate-400'}`}>
+                    {dim.label}
+                </span>
+              </button>
+            ))}
+          </div>
       </div>
 
+      {/* Element */}
       {selectedDimension && (
-        <div className="mt-6 pt-4 border-t border-white/5">
-            <h5 className="text-sm font-medium text-slate-400 mb-3">Select Category</h5>
-            <div className="flex flex-wrap gap-2">
+        <div className="animate-in fade-in slide-in-from-top-2">
+            <label className="block text-sm font-medium text-slate-300 mb-3">Element</label>
+            <div className="grid grid-cols-3 gap-3">
                 {DIMENSIONS_STRUCTURE.find(d => d.id === selectedDimension)?.children.map(sub => (
                     <button
                         key={sub.id}
-                        onClick={() => setSelectedSubDimension(sub.id)}
-                        className={`px-4 py-2 rounded-lg text-sm border transition-all ${
-                            selectedSubDimension === sub.id
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                        onClick={() => setSelectedElement(sub.id)}
+                        className={`p-3 rounded-lg border transition-all text-left ${
+                            selectedElement === sub.id
+                                ? 'border-blue-500 bg-blue-500/10 text-white'
+                                : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-500'
                         }`}
                     >
-                        {sub.label}
+                        <span className="text-sm font-medium">{sub.label}</span>
                     </button>
                 ))}
             </div>
@@ -186,141 +223,181 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
   );
 
   const renderStep2 = () => (
-    <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
-      <h4 className="text-lg font-medium text-white mb-2">Add Tags</h4>
-      <p className="text-sm text-slate-400 mb-4">
-          Selected: <span className="text-blue-400">{selectedDimension}</span> {selectedSubDimension && <span>/ <span className="text-emerald-400">{selectedSubDimension}</span></span>}
-      </p>
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+      <h2 className="text-2xl font-bold text-white mb-4">Define this Work</h2>
       
-      <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
-        <TagSelector selectedTags={tags} onChange={setTags} />
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Work Name</label>
+        <input
+          className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:outline-none"
+          placeholder="e.g., Chapter 12: The Body as Classroom"
+          value={title}
+          onChange={e => setTitle(e.target.value)}
+          autoFocus
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
+        <textarea
+          className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:outline-none resize-none"
+          rows={3}
+          placeholder="What is this Work about?"
+          value={description}
+          onChange={e => setDescription(e.target.value)}
+        />
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
+            <input type="date" className="w-full px-4 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white" 
+                value={startDate} onChange={e => setStartDate(e.target.value)} />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">Target Completion</label>
+            <input type="date" className="w-full px-4 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white" 
+                value={dueDate} onChange={e => setDueDate(e.target.value)} />
+          </div>
       </div>
     </div>
   );
 
   const renderStep3 = () => (
-    <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
-      <h4 className="text-lg font-medium text-white mb-4">Task Details</h4>
-      
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1.5">Task Title</label>
-        <input
-          type="text"
-          className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="What needs to be done?"
-          autoFocus
-        />
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+      <div className="flex justify-between items-center">
+          <h2 className="text-2xl font-bold text-white">Define Activities</h2>
       </div>
-      
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1.5">Resources & Description</label>
-        <textarea
-          className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all resize-none"
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-          placeholder="Add notes, resources, links, or context..."
-          rows={5}
-        />
+
+      <div className="space-y-3">
+          {activities.map((act, idx) => (
+              <div key={idx} className="glass-panel p-3 rounded-lg flex justify-between items-center border border-white/5">
+                  <span className="text-sm text-slate-200">{act.title}</span>
+                  <button onClick={() => setActivities(activities.filter((_, i) => i !== idx))} className="text-slate-500 hover:text-red-500"><X size={14}/></button>
+              </div>
+          ))}
+          
+          <div className="flex gap-2">
+              <input 
+                className="flex-1 px-4 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white"
+                placeholder="Add new activity..."
+                value={newActivity}
+                onChange={e => setNewActivity(e.target.value)}
+                onKeyDown={e => {
+                    if (e.key === 'Enter' && newActivity.trim()) {
+                        setActivities([...activities, { title: newActivity, status: 'todo' }]);
+                        setNewActivity('');
+                    }
+                }}
+              />
+              <button 
+                onClick={() => {
+                    if (newActivity.trim()) {
+                        setActivities([...activities, { title: newActivity, status: 'todo' }]);
+                        setNewActivity('');
+                    }
+                }}
+                className="p-2 bg-blue-600 rounded-lg text-white"
+              ><Plus size={20}/></button>
+          </div>
       </div>
     </div>
   );
 
   const renderStep4 = () => (
-    <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
-      <h4 className="text-lg font-medium text-white mb-4">Schedule</h4>
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+      <h2 className="text-2xl font-bold text-white mb-4">Resources Needed</h2>
       
-      <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1.5">Due Date</label>
-        <input
-          type="date"
-          className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-          value={dueDate}
-          onChange={(e) => setDueDate(e.target.value)}
-        />
+      {/* Time & Energy */}
+      <div className="glass-panel p-5 rounded-xl border border-blue-500/20">
+          <div className="flex items-center gap-2 mb-4 text-blue-400 font-semibold"><Clock size={18}/> Time & Energy</div>
+          <div className="grid grid-cols-2 gap-4">
+              <div>
+                  <label className="text-xs text-slate-400 block mb-1">Est. Hours</label>
+                  <input type="number" className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded text-white" placeholder="e.g. 5" value={timeEstimate} onChange={e => setTimeEstimate(e.target.value)} />
+              </div>
+              <div>
+                  <label className="text-xs text-slate-400 block mb-1">Energy</label>
+                  <select className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded text-white" value={energyLevel} onChange={e => setEnergyLevel(e.target.value)}>
+                      <option>Deep work</option>
+                      <option>Focused work</option>
+                      <option>Light work</option>
+                      <option>Admin</option>
+                  </select>
+              </div>
+          </div>
       </div>
-      
-      <div className="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-          <h5 className="text-sm font-semibold text-blue-400 mb-1">Ready to create?</h5>
-          <p className="text-xs text-blue-300/80">
-              Creating task "{title}" in {selectedDimension}
-          </p>
+
+      {/* Tools */}
+      <div className="glass-panel p-5 rounded-xl border border-purple-500/20">
+          <div className="flex items-center gap-2 mb-4 text-purple-400 font-semibold"><Wrench size={18}/> Tools</div>
+          <div className="flex flex-wrap gap-2 mb-3">
+              {tools.map((t, i) => (
+                  <span key={i} className="px-2 py-1 bg-purple-500/20 text-purple-300 rounded text-xs flex items-center gap-1">{t} <X size={10} className="cursor-pointer" onClick={() => setTools(tools.filter((_, idx) => idx !== i))} /></span>
+              ))}
+          </div>
+          <input 
+            className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded text-white" 
+            placeholder="Add tool..." 
+            value={newTool}
+            onChange={e => setNewTool(e.target.value)}
+            onKeyDown={e => {
+                if (e.key === 'Enter' && newTool.trim()) {
+                    setTools([...tools, newTool.trim()]);
+                    setNewTool('');
+                }
+            }}
+          />
+      </div>
+    </div>
+  );
+
+  const renderStep5 = () => (
+    <div className="space-y-6 animate-in slide-in-from-right-4 duration-200">
+      <h2 className="text-2xl font-bold text-white mb-4">Connect to other Works</h2>
+      <div className="p-8 text-center border-2 border-dashed border-slate-700 rounded-xl text-slate-500">
+          <Link2 size={32} className="mx-auto mb-2 opacity-50" />
+          <p>Connection management will be available in the Mind Map view.</p>
       </div>
     </div>
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200">
-      <div className="w-full max-w-lg bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-slate-900/50">
-          <h3 className="text-lg font-bold text-white">Create New Task</h3>
-          <button onClick={resetForm} className="text-slate-400 hover:text-white transition-colors">
-            <X size={20} />
-          </button>
-        </div>
-
-        {/* Steps */}
-        <div className="px-6 pt-6">
-             <div className="flex justify-between mb-6 relative">
-                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-0 -translate-y-1/2"></div>
-                {STEPS.map((s) => {
-                    const isActive = step === s.id;
-                    const isCompleted = step > s.id;
-                    return (
-                        <div key={s.id} className="relative z-10 bg-slate-950 px-2 flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 ${
-                                isActive ? 'border-blue-500 bg-slate-900 text-blue-500' :
-                                isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' :
-                                'border-slate-800 bg-slate-900 text-slate-600'
-                            }`}>
-                                <s.icon size={14} />
-                            </div>
-                            <span className={`text-[10px] mt-1 font-medium uppercase ${isActive ? 'text-blue-500' : 'text-slate-600'}`}>{s.title}</span>
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
+      <div className="w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
+        {/* Step Indicator */}
+        <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-slate-900/50">
+            <div className="flex gap-4">
+                {STEPS.map((s, i) => (
+                    <div key={s.id} className="flex items-center gap-2">
+                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s.id ? 'bg-blue-500 text-white' : step > s.id ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
+                            {step > s.id ? <ArrowRight size={14}/> : s.id}
                         </div>
-                    );
-                })}
-             </div>
+                        {i < STEPS.length - 1 && <div className={`w-8 h-0.5 ${step > i + 1 ? 'bg-emerald-500' : 'bg-slate-800'}`}></div>}
+                    </div>
+                ))}
+            </div>
+            <button onClick={resetForm}><X className="text-slate-400 hover:text-white" /></button>
         </div>
 
-        {/* Body */}
-        <div className="px-6 pb-6 flex-1 overflow-y-auto">
-          {step === 1 && renderStep1()}
-          {step === 2 && renderStep2()}
-          {step === 3 && renderStep3()}
-          {step === 4 && renderStep4()}
+        {/* Content */}
+        <div className="px-8 py-8 flex-1 overflow-y-auto">
+            {step === 1 && renderStep1()}
+            {step === 2 && renderStep2()}
+            {step === 3 && renderStep3()}
+            {step === 4 && renderStep4()}
+            {step === 5 && renderStep5()}
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-white/5 bg-slate-900/50 flex justify-between">
-          <button 
-            onClick={handleBack}
-            disabled={step === 1}
-            className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                step === 1 ? 'opacity-0 cursor-default' : 'text-slate-400 hover:text-white hover:bg-white/5'
-            }`}
-          >
-            <ArrowLeft size={16} /> Back
-          </button>
-          
-          {step < 4 ? (
-             <button 
-                onClick={handleNext}
-                disabled={step === 1 && !selectedDimension} // Require placement
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
-             >
-                Next <ArrowRight size={16} />
-             </button>
-          ) : (
-             <button 
-                onClick={handleSubmit}
-                disabled={!title.trim() || isSubmitting}
-                className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
-             >
-                {isSubmitting ? 'Creating...' : 'Create Task'} <Plus size={16} />
-             </button>
-          )}
+        <div className="px-8 py-6 border-t border-white/5 bg-slate-900/50 flex justify-between">
+            <button onClick={handleBack} disabled={step === 1} className={`px-6 py-2 rounded-lg font-medium ${step === 1 ? 'opacity-0' : 'text-slate-400 hover:text-white'}`}>Back</button>
+            
+            {step < 5 ? (
+                <button onClick={handleNext} disabled={step === 1 && !selectedDimension} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 disabled:opacity-50">Next Step</button>
+            ) : (
+                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 disabled:opacity-50 shadow-lg shadow-emerald-500/20">Create Work</button>
+            )}
         </div>
       </div>
     </div>

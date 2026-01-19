@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
-import QuickCapture from './QuickCapture';
 import ShortcutsModal from './ShortcutsModal';
 import CreateTaskModal from './CreateTaskModal';
+import QuickCapture from './QuickCapture';
 import useKeyboardShortcuts from '../hooks/useKeyboardShortcuts';
 import { CreateTaskProvider, useCreateTask } from '../context/CreateTaskContext';
 
@@ -17,13 +17,7 @@ function LayoutContent() {
   useKeyboardShortcuts(() => setShowShortcuts(prev => !prev));
 
   const handleTaskCreated = () => {
-      // If we are on tasks page, ideally we refresh. 
-      // For now, forcing a refresh via window or navigation might be jarring.
-      // A clean way is to re-navigate to current route which TasksPage listens to via useEffect
-      navigate('.', { replace: true }); 
-      // Better: TasksPage should listen to a global event or we rely on React Query.
-      // Since we don't have React Query, simple navigation update helps.
-      window.dispatchEvent(new Event('task-created')); // Custom event for TasksPage to listen
+      window.dispatchEvent(new Event('task-created')); 
   };
 
   return (

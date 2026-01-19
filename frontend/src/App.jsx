@@ -7,6 +7,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 const TasksPage = lazy(() => import('./pages/TasksPage'));
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const ReadinessPage = lazy(() => import('./pages/ReadinessPage'));
+const BoardPage = lazy(() => import('./pages/BoardPage'));
 
 function LoadingSpinner() {
     return (
@@ -26,6 +27,7 @@ function App() {
               <Route index element={<TasksPage />} />
               <Route path="timeline" element={<TimelinePage />} />
               <Route path="readiness" element={<ReadinessPage />} />
+              <Route path="board" element={<BoardPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

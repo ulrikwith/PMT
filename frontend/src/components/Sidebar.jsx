@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
-import { List, Calendar, Target, ChevronDown, ChevronRight } from 'lucide-react';
+import { List, Calendar, Target, ChevronDown, ChevronRight, LayoutDashboard } from 'lucide-react';
 import api from '../services/api';
 import { useCreateTask } from '../context/CreateTaskContext';
 
@@ -131,6 +131,7 @@ export default function Sidebar() {
 
   const navItems = [
     { to: "/", icon: List, label: "All Tasks", count: taskCounts.total },
+    { to: "/board", icon: LayoutDashboard, label: "Board" },
     { to: "/timeline", icon: Calendar, label: "Timeline" },
     { to: "/readiness", icon: Target, label: "Readiness" },
   ];
