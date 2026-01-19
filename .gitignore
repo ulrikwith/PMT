@@ -33,3 +33,6 @@ Thumbs.db
 # Misc
 .cache/
 .temp/
+
+# Database - keep local data changes out of version control
+backend/tasks.json
