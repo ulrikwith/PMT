@@ -30,6 +30,37 @@
       "dueDate": "2026-02-27",
       "createdAt": "2026-01-18T14:53:30.465Z",
       "updatedAt": "2026-01-18T14:53:30.465Z"
+    },
+    {
+      "id": "local-1768822787466",
+      "title": "Book 1 Personal Story",
+      "description": "My next free book on Amazon",
+      "status": "In Progress",
+      "tags": [
+        "content",
+        "Books"
+      ],
+      "dueDate": "2026-01-19",
+      "workType": "part-of-element",
+      "targetOutcome": "",
+      "startDate": "2026-01-19",
+      "activities": [
+        {
+          "id": 1768822676676,
+          "title": "",
+          "timeEstimate": "8",
+          "status": "todo"
+        }
+      ],
+      "resources": {
+        "energyLevel": "focused"
+      },
+      "position": {
+        "x": 400,
+        "y": 300
+      },
+      "createdAt": "2026-01-19T11:39:47.466Z",
+      "updatedAt": "2026-01-19T11:39:47.466Z"
     }
   ],
   "tags": [
