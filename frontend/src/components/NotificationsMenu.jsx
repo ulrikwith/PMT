@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Bell, Check, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 
 const DIMENSIONS = [
   { id: 'content', label: 'Content', color: 'blue', tags: ['substack', 'newsletter', 'books'] },
@@ -12,9 +12,9 @@ const DIMENSIONS = [
 ];
 
 export default function NotificationsMenu() {
+  const { tasks } = useTasks();
   const [isOpen, setIsOpen] = useState(false);
   const [tasksOfDay, setTasksOfDay] = useState([]);
-  const [loading, setLoading] = useState(false);
   const menuRef = useRef(null);
   const navigate = useNavigate();
 
@@ -29,26 +29,17 @@ export default function NotificationsMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const fetchTasksOfDay = async () => {
-    setLoading(true);
-    try {
-        const allTasks = await api.getTasks();
-        const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-        
-        const dueToday = allTasks.filter(t => t.dueDate === today && t.status !== 'Done');
-        setTasksOfDay(dueToday);
-    } catch (e) {
-        console.error("Failed to fetch notifications", e);
-    } finally {
-        setLoading(false);
+  // Compute tasksOfDay reactively whenever tasks change or menu opens
+  useEffect(() => {
+    if (isOpen) {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
+      const dueToday = tasks.filter(t => t.dueDate === today && t.status !== 'Done');
+      setTasksOfDay(dueToday);
     }
-  };
+  }, [isOpen, tasks]);
 
   const toggleMenu = () => {
-      if (!isOpen) {
-          fetchTasksOfDay();
-      }
-      setIsOpen(!isOpen);
+    setIsOpen(!isOpen);
   };
 
   const handleTaskClick = (task) => {
@@ -98,9 +89,7 @@ export default function NotificationsMenu() {
             </div>
 
             <div className="max-h-96 overflow-y-auto p-2">
-                {loading ? (
-                    <div className="p-4 text-center text-xs text-slate-500">Loading...</div>
-                ) : !hasTasks ? (
+                {!hasTasks ? (
                     <div className="p-8 text-center flex flex-col items-center gap-2">
                         <Check size={24} className="text-emerald-500/50" />
                         <span className="text-sm text-slate-400">All clear for today!</span>

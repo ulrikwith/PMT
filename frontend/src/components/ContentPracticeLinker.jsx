@@ -1,12 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { Search, Link as LinkIcon, Plus } from 'lucide-react';
+import { useTasks } from '../context/TasksContext';
 import api from '../services/api';
 
 export default function ContentPracticeLinker({ taskId, taskTags, onUpdate }) {
+  const { tasks } = useTasks();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState([]);
   const [isSearching, setIsSearching] = useState(false);
-  const [allTasks, setAllTasks] = useState([]);
 
   // Determine link direction based on current task type
   const isContent = taskTags.some(t => {
@@ -14,33 +15,27 @@ export default function ContentPracticeLinker({ taskId, taskTags, onUpdate }) {
     return lower.includes('substack') || lower.includes('newsletter') || lower.includes('books');
   });
   const isPractice = taskTags.some(t => t.includes('practice'));
-  
+
   // If neither or both, we just show a generic "Link Task" interface
   const linkLabel = isContent ? 'Link to Practice' : (isPractice ? 'Link to Content' : 'Link Related Task');
   const defaultRelType = isContent ? 'generated-by' : (isPractice ? 'generates' : 'related-to');
 
-  useEffect(() => {
-    // Pre-fetch all tasks for search (client-side search for v1)
-    const loadTasks = async () => {
-        const data = await api.getTasks();
-        setAllTasks(data.filter(t => t.id !== taskId)); // Exclude self
-    };
-    loadTasks();
-  }, [taskId]);
+  // Filter out current task from global tasks
+  const availableTasks = tasks.filter(t => t.id !== taskId);
 
   useEffect(() => {
       if (!searchQuery.trim()) {
           setSearchResults([]);
           return;
       }
-      
+
       const lowerQ = searchQuery.toLowerCase();
-      const results = allTasks.filter(t => 
-          t.title.toLowerCase().includes(lowerQ) || 
+      const results = availableTasks.filter(t =>
+          t.title.toLowerCase().includes(lowerQ) ||
           (t.description && t.description.toLowerCase().includes(lowerQ))
       );
       setSearchResults(results.slice(0, 5)); // Limit to 5
-  }, [searchQuery, allTasks]);
+  }, [searchQuery, availableTasks]);
 
   const handleLink = async (targetTask) => {
       setIsSearching(true);

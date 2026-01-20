@@ -1,20 +1,21 @@
 import React, { useState, useEffect } from 'react';
 import { ArrowRight, Link, Trash2 } from 'lucide-react';
+import { useTasks } from '../context/TasksContext';
 import api from '../services/api';
 
 export default function RelationshipMap({ taskId, relationships, onUpdate }) {
+  const { tasks } = useTasks();
   const [relatedTasks, setRelatedTasks] = useState([]);
-  const [loading, setLoading] = useState(false);
 
   // Group relationships by type
   const grouped = relationships.reduce((acc, rel) => {
     const type = rel.type;
     if (!acc[type]) acc[type] = [];
-    
+
     // Determine if this task is 'from' or 'to'
     const isFrom = rel.fromTaskId === taskId;
     const otherId = isFrom ? rel.toTaskId : rel.fromTaskId;
-    
+
     acc[type].push({
       ...rel,
       otherTaskId: otherId,
@@ -24,34 +25,27 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
   }, {});
 
   useEffect(() => {
-    // Fetch details for related tasks
-    // In a real app with Redux/Context, we might already have these in state
-    // For now, we'll fetch all tasks to resolve names (not efficient but functional for v1)
-    const fetchTaskDetails = async () => {
-        if (relationships.length === 0) return;
-        setLoading(true);
-        try {
-            const allTasks = await api.getTasks(); // Should use cache or specific ID fetch if available
-            const related = relationships.map(rel => {
-                const otherId = rel.fromTaskId === taskId ? rel.toTaskId : rel.fromTaskId;
-                const task = allTasks.find(t => t.id === otherId);
-                return {
-                    relationshipId: rel.id,
-                    ...task,
-                    relationshipType: rel.type,
-                    direction: rel.fromTaskId === taskId ? 'outgoing' : 'incoming'
-                };
-            }).filter(t => t.id); // Filter out any not found
-            setRelatedTasks(related);
-        } catch (e) {
-            console.error("Failed to fetch related task details", e);
-        } finally {
-            setLoading(false);
-        }
-    };
-    
-    fetchTaskDetails();
-  }, [relationships, taskId]);
+    // Resolve related task details from global tasks state
+    if (relationships.length === 0) {
+      setRelatedTasks([]);
+      return;
+    }
+
+    const related = relationships.map(rel => {
+      const otherId = rel.fromTaskId === taskId ? rel.toTaskId : rel.fromTaskId;
+      const task = tasks.find(t => t.id === otherId);
+      if (!task) return null;
+
+      return {
+        relationshipId: rel.id,
+        ...task,
+        relationshipType: rel.type,
+        direction: rel.fromTaskId === taskId ? 'outgoing' : 'incoming'
+      };
+    }).filter(t => t !== null);
+
+    setRelatedTasks(related);
+  }, [relationships, taskId, tasks]);
 
   const handleDelete = async (relId) => {
       if (window.confirm('Remove this relationship?')) {
@@ -67,10 +61,8 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
       <h4 className="text-sm font-semibold text-slate-700 mb-3 flex items-center gap-2">
         <Link size={14} /> Related Tasks
       </h4>
-      
-      {loading ? (
-        <div className="text-xs text-slate-500">Loading connections...</div>
-      ) : (
+
+      {(
         <div className="space-y-3">
           {Object.entries(grouped).map(([type, rels]) => (
             <div key={type}>

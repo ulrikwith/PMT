@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { Lightbulb, X } from 'lucide-react';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 import TagSelector from './TagSelector';
 
 export default function QuickCapture() {
+  const { createTask } = useTasks();
   const [isOpen, setIsOpen] = useState(false);
   const [description, setDescription] = useState('');
   const [tags, setTags] = useState([]);
@@ -18,7 +19,7 @@ export default function QuickCapture() {
     setIsSubmitting(true);
     try {
       // Create task with selected tags, no default "practice" or "insight"
-      await api.createTask({
+      await createTask({
         title: description.substring(0, 50) + (description.length > 50 ? '...' : ''),
         description: description,
         tags: tags // User MUST select these

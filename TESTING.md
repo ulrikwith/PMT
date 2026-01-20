@@ -100,10 +100,20 @@ Currently in **LOCAL STORAGE MODE**. To test Blue.cc integration:
    - Confirm todoList queries work
    - Validate rich metadata serialization
 
+### Component Migration Status
+
+✅ **Complete**: All components now use unified TasksContext
+- Sidebar: Uses global tasks state for reactive counts
+- CreateTaskModal: Uses TasksContext.createTask()
+- QuickCapture: Uses TasksContext.createTask()
+- NotificationsMenu: Uses global tasks state for due date filtering
+- RelationshipMap: Uses global tasks state to resolve related task details
+- ContentPracticeLinker: Uses global tasks state for search functionality
+- BoardPage: Uses TasksContext for all task operations
+
 ### Known Issues
 
 1. **Blue.cc Project Not Found**: Queries fail with "PROJECT_NOT_FOUND" - requires workspace configuration in Blue.cc UI
-2. **Legacy Components**: Some older components may still call API directly - these need migration to TasksContext
 
 ### Success Criteria
 
