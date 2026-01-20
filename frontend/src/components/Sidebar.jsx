@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import { List, Calendar, Target, ChevronDown, ChevronRight, LayoutDashboard } from 'lucide-react';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 import { useCreateTask } from '../context/CreateTaskContext';
 
 const DIMENSIONS_STRUCTURE = [
@@ -63,46 +63,36 @@ const DIMENSIONS_STRUCTURE = [
 ];
 
 export default function Sidebar() {
+  const { tasks } = useTasks(); // Use unified state
   const [taskCounts, setTaskCounts] = useState({ total: 0 });
   const [expanded, setExpanded] = useState({});
   const [searchParams, setSearchParams] = useSearchParams();
   const activeDimension = searchParams.get('dimension') || '';
   const { openCreateTask } = useCreateTask();
 
+  // Recalculate counts whenever tasks change
   useEffect(() => {
-    fetchTaskCounts();
-    // Listen for global task creation to update counts
-    window.addEventListener('task-created', fetchTaskCounts);
-    return () => window.removeEventListener('task-created', fetchTaskCounts);
-  }, [activeDimension]);
+    const counts = { total: tasks.length };
 
-  const fetchTaskCounts = async () => {
-    try {
-      const tasks = await api.getTasks();
-      const counts = { total: tasks.length };
-      
-      // Calculate counts for each dimension node
-      DIMENSIONS_STRUCTURE.forEach(parent => {
-          // Parent count: matches any of its tags
-          const parentCount = tasks.filter(t => 
-              t.tags?.some(tag => parent.tags.includes(tag.toLowerCase()))
-          ).length;
-          counts[parent.id] = parentCount;
+    // Calculate counts for each dimension node
+    DIMENSIONS_STRUCTURE.forEach(parent => {
+        // Parent count: matches any of its tags
+        const parentCount = tasks.filter(t =>
+            t.tags?.some(tag => parent.tags.includes(tag.toLowerCase()))
+        ).length;
+        counts[parent.id] = parentCount;
 
           // Children counts
           parent.children.forEach(child => {
-              const childCount = tasks.filter(t => 
+              const childCount = tasks.filter(t =>
                   t.tags?.some(tag => tag.toLowerCase() === child.id)
               ).length;
               counts[child.id] = childCount;
           });
       });
-      
+
       setTaskCounts(counts);
-    } catch (err) {
-      console.error('Failed to fetch task counts:', err);
-    }
-  };
+  }, [tasks]); // Re-run when tasks change
 
   const toggleExpand = (id) => {
     setExpanded(prev => ({ ...prev, [id]: !prev[id] }));

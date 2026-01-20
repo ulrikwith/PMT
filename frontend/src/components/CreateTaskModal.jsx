@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  Plus, X, ArrowRight, ArrowLeft, Calendar, Tag, Layers, FileText, 
-  Clock, Zap, Wrench, Users, BookOpen, Link2, Lock, ArrowLeftRight 
+import {
+  Plus, X, ArrowRight, ArrowLeft, Calendar, Tag, Layers, FileText,
+  Clock, Zap, Wrench, Users, BookOpen, Link2, Lock, ArrowLeftRight
 } from 'lucide-react';
 import TagSelector from './TagSelector';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 
 const STEPS = [
   { id: 1, title: 'Placement', icon: Layers },
@@ -68,6 +68,7 @@ const DIMENSIONS_STRUCTURE = [
 ];
 
 export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onTaskCreated }) {
+  const { createTask } = useTasks(); // Use unified state
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -190,9 +191,9 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
           people
       };
 
-      await api.createTask({ 
-        title, 
-        description, 
+      await createTask({
+        title,
+        description,
         tags: finalTags,
         dueDate, // Target completion
         startDate,
@@ -201,7 +202,7 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
         activities,
         resources
       });
-      
+
       if (onTaskCreated) onTaskCreated();
       resetForm();
     } catch (e) {
