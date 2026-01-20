@@ -35,7 +35,7 @@ export default function ContentPracticeLinker({ taskId, taskTags, onUpdate }) {
           (t.description && t.description.toLowerCase().includes(lowerQ))
       );
       setSearchResults(results.slice(0, 5)); // Limit to 5
-  }, [searchQuery, availableTasks]);
+  }, [searchQuery, tasks, taskId]); // Use tasks and taskId instead of computed availableTasks
 
   const handleLink = async (targetTask) => {
       setIsSearching(true);
