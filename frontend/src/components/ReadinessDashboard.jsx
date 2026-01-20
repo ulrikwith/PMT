@@ -1,30 +1,59 @@
-import React, { useState, useEffect } from 'react';
+import React, { useMemo } from 'react';
 import { Check } from 'lucide-react';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 
 export default function ReadinessDashboard() {
-  const [readiness, setReadiness] = useState({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { tasks, loading, error } = useTasks();
 
-  useEffect(() => {
-    fetchReadiness();
-  }, []);
+  const readiness = useMemo(() => {
+      const completedTasks = tasks.filter(t => t.status === 'Done');
+      const check = (keywords) => {
+         return completedTasks.some(t => {
+             const lower = t.title.toLowerCase();
+             return keywords.some(k => lower.includes(k.toLowerCase()));
+         });
+      };
 
-  const fetchReadiness = async () => {
-    try {
-      const data = await api.getReadiness();
-      setReadiness(data);
-      setError(null);
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load readiness data. Please ensure the backend is running.');
-    } finally {
-      setLoading(false);
-    }
-  };
+      return {
+         content: {
+             label: "Content",
+             items: [
+                 { name: "Substack Setup", completed: check(['substack setup', 'create substack', 'setup substack']) },
+                 { name: "Substack Welcome", completed: check(['substack welcome', 'intro post']) },
+                 { name: "Newsletter Platform", completed: check(['newsletter platform', 'select mailer', 'mailing list']) },
+                 { name: "Book Outline", completed: check(['book outline', 'chapter list']) },
+                 { name: "Book Draft", completed: check(['first draft', 'manuscript']) }
+             ]
+         },
+         practices: {
+             label: "Practices",
+             items: [
+                 { name: "Stone Concept", completed: check(['stone practice', 'stone concept', 'define stone']) },
+                 { name: "Walk Guide", completed: check(['walking practice', 'walk guide', 'audio guide']) },
+                 { name: "B2B Pitch", completed: check(['b2b pitch', 'pitch deck', 'corporate offer']) }
+             ]
+         },
+         community: {
+             label: "Community",
+             items: [
+                 { name: "Mission Statement", completed: check(['mission statement', 'define mission', 'values']) },
+                 { name: "Community Guidelines", completed: check(['guidelines', 'rules', 'code of conduct']) },
+                 { name: "First 30 Plan", completed: check(['first 30', 'onboarding', 'initial cohort']) }
+             ]
+         },
+         marketing: {
+             label: "Marketing",
+             items: [
+                 { name: "BOPA Strategy", completed: check(['bopa', 'borrowed audience']) },
+                 { name: "Website Domain", completed: check(['domain', 'buy url', 'dns']) },
+                 { name: "Website Launch", completed: check(['launch website', 'publish site', 'mvp']) },
+                 { name: "Social Profiles", completed: check(['social media', 'instagram', 'linkedin', 'twitter']) }
+             ]
+         }
+      };
+  }, [tasks]);
 
-  if (loading) return <div className="text-slate-500">Loading readiness data...</div>;
+  if (loading && tasks.length === 0) return <div className="text-slate-500">Loading readiness data...</div>;
   if (error) return <div className="text-red-500 p-4 border border-red-500/20 rounded bg-red-500/10">{error}</div>;
 
   return (

@@ -1,49 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import TaskList from '../components/TaskList';
 import FilterBar from '../components/FilterBar';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 
 export default function TasksPage() {
-  const [tasks, setTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const { tasks, loading, error, createTask, updateTask, deleteTask, refreshData } = useTasks();
   const [searchParams, setSearchParams] = useSearchParams();
 
-  // Build filters from URL params and local state
+  // Build filters from URL params
   const filters = {
     dimension: searchParams.get('dimension') || '',
     status: searchParams.get('status') || '',
     search: searchParams.get('search') || '',
   };
 
-  useEffect(() => {
-    fetchTasks();
-    
-    // Listen for global refresh
-    const handleRefresh = () => fetchTasks();
-    window.addEventListener('task-created', handleRefresh);
-    return () => window.removeEventListener('task-created', handleRefresh);
-  }, [searchParams]);
+  // Derived state for filtering
+  const filteredTasks = tasks.filter(task => {
+      // 1. Dimension Filter
+      if (filters.dimension) {
+          const dim = filters.dimension.toLowerCase();
+          // Check explicit dimension field OR tags
+          const hasTag = task.tags && task.tags.some(t => t.toLowerCase().includes(dim));
+          // If we had a specific 'dimension' field on task, check that too
+          if (!hasTag) return false;
+      }
+      
+      // 2. Status Filter
+      if (filters.status && task.status !== filters.status) {
+          return false;
+      }
 
-  const fetchTasks = async () => {
-    try {
-      setLoading(true);
-      const activeFilters = {};
-      if (filters.dimension) activeFilters.dimension = filters.dimension;
-      if (filters.status) activeFilters.status = filters.status;
-      if (filters.search) activeFilters.search = filters.search;
+      // 3. Search
+      if (filters.search) {
+          const q = filters.search.toLowerCase();
+          const matchTitle = task.title.toLowerCase().includes(q);
+          const matchDesc = (task.description || '').toLowerCase().includes(q);
+          if (!matchTitle && !matchDesc) return false;
+      }
 
-      const data = await api.getTasks(activeFilters);
-      setTasks(Array.isArray(data) ? data : []);
-      setError(null);
-    } catch (err) {
-      setError('Failed to load tasks: ' + err.message);
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return true;
+  });
 
   const handleFilterChange = (newFilters) => {
     const params = new URLSearchParams();
@@ -51,38 +48,6 @@ export default function TasksPage() {
     if (newFilters.status) params.set('status', newFilters.status);
     if (newFilters.search) params.set('search', newFilters.search);
     setSearchParams(params);
-  };
-
-  const handleCreateTask = async (taskData) => {
-    try {
-      const result = await api.createTask(taskData);
-      const newTask = result.data || result;
-      setTasks(prev => [...prev, newTask]);
-    } catch (err) {
-      setError('Failed to create task: ' + err.message);
-      console.error(err);
-    }
-  };
-
-  const handleUpdateTask = async (taskId, updates) => {
-    try {
-      const result = await api.updateTask(taskId, updates);
-      const updatedTask = result.data || result;
-      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-    } catch (err) {
-      setError('Failed to update task: ' + err.message);
-      console.error(err);
-    }
-  };
-
-  const handleDeleteTask = async (taskId) => {
-    try {
-      await api.deleteTask(taskId);
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-    } catch (err) {
-      setError('Failed to delete task: ' + err.message);
-      console.error(err);
-    }
   };
 
   const getPageTitle = () => {
@@ -94,13 +59,18 @@ export default function TasksPage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
-          {getPageTitle()}
-        </h2>
-        <p className="text-slate-400">
-          Managing {tasks.length} task{tasks.length !== 1 ? 's' : ''}
-        </p>
+      <div className="mb-6 flex justify-between items-end">
+        <div>
+            <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
+            {getPageTitle()}
+            </h2>
+            <p className="text-slate-400">
+            Managing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
+            </p>
+        </div>
+        <button onClick={refreshData} className="text-xs text-slate-500 hover:text-white underline">
+            Refresh
+        </button>
       </div>
 
       <FilterBar filters={filters} onFilterChange={handleFilterChange} />
@@ -108,20 +78,19 @@ export default function TasksPage() {
       {error && (
         <div className="p-4 mb-4 bg-red-500/10 border border-red-500/20 text-red-500 rounded-lg flex justify-between items-center">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="hover:text-white">×</button>
         </div>
       )}
 
-      {loading ? (
+      {loading && tasks.length === 0 ? (
         <div className="flex items-center justify-center py-20">
           <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-500"></div>
         </div>
       ) : (
         <TaskList
-          tasks={tasks}
-          onCreate={handleCreateTask}
-          onUpdate={handleUpdateTask}
-          onDelete={handleDeleteTask}
+          tasks={filteredTasks}
+          onCreate={createTask}
+          onUpdate={updateTask}
+          onDelete={deleteTask}
         />
       )}
     </div>

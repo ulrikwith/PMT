@@ -2,6 +2,7 @@ import React from 'react';
 import ReactDOM from 'react-dom/client';
 import App from './App';
 import './index.css';
+import { TasksProvider } from './context/TasksContext';
 
 // Register Service Worker
 if ('serviceWorker' in navigator) {
@@ -19,6 +20,8 @@ if ('serviceWorker' in navigator) {
 
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <App />
+    <TasksProvider>
+      <App />
+    </TasksProvider>
   </React.StrictMode>
 );

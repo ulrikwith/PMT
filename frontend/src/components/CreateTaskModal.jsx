@@ -101,17 +101,61 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
 
   // Initialize with passed data
   useEffect(() => {
-      if (isOpen) {
-          if (initialData && initialData.tag) {
-              const tag = initialData.tag;
-              const parent = DIMENSIONS_STRUCTURE.find(d => d.id === tag || d.children.some(c => c.id === tag));
-              if (parent) {
-                  setSelectedDimension(parent.id);
-                  if (parent.id !== tag) {
-                      setSelectedElement(tag);
+      if (isOpen && initialData) {
+          // 1. Tags / Dimension
+          // Try to find dimension from explicit tags list or 'tag' prop
+          const tags = initialData.tags || [];
+          if (initialData.tag) tags.push(initialData.tag);
+          
+          let foundDim = null;
+          let foundEl = null;
+
+          // Find first matching dimension/element
+          for (const dim of DIMENSIONS_STRUCTURE) {
+              if (tags.includes(dim.id)) {
+                  foundDim = dim.id;
+              }
+              for (const child of dim.children) {
+                  if (tags.includes(child.id)) {
+                      foundDim = dim.id;
+                      foundEl = child.id;
                   }
               }
+              if (foundDim) break;
           }
+          
+          setSelectedDimension(foundDim);
+          setSelectedElement(foundEl);
+
+          // 2. Basic Info
+          setTitle(initialData.title || '');
+          setDescription(initialData.description || '');
+          setWorkType(initialData.workType || 'part-of-element');
+          setTargetOutcome(initialData.targetOutcome || '');
+
+          // 3. Dates (Format ISO to YYYY-MM-DD)
+          const formatDate = (dateStr) => {
+              if (!dateStr) return '';
+              try {
+                  return new Date(dateStr).toISOString().split('T')[0];
+              } catch (e) { return ''; }
+          };
+          setStartDate(formatDate(initialData.startDate));
+          setDueDate(formatDate(initialData.dueDate));
+
+          // 4. Activities
+          setActivities(initialData.activities || []);
+
+          // 5. Resources
+          const res = initialData.resources || {};
+          setTimeEstimate(res.timeEstimate || '');
+          setEnergyLevel(res.energyLevel || 'Focused work');
+          setTools(res.tools || []);
+          setMaterials(res.materials || '');
+          setPeople(res.people || []);
+
+      } else if (!isOpen) {
+          // Optional: Reset on close if desired, but handle in resetForm usually
       }
   }, [isOpen, initialData]);
 

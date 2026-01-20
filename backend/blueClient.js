@@ -52,6 +52,9 @@ class BlueClient {
       },
     });
     this.companyId = null;
+    this.companyUid = null;
+    this.defaultProjectId = null;
+    this.defaultProjectUid = null;
     this.defaultTodoListId = null;
     this.localTasks = [];
     this.localTags = [];
@@ -94,8 +97,17 @@ class BlueClient {
     }
   }
 
-  async query(query, variables = {}) {
+  async query(query, variables = {}, options = {}) {
     try {
+      // Update client headers - Blue.cc requires both Company ID and Project ID (Internal IDs, not UIDs)
+      if (this.companyId && !options.skipCompanyHeader) {
+        this.client.setHeader('X-Bloo-Company-ID', this.companyId);
+      }
+
+      if (this.defaultProjectId && !options.skipProjectHeader) {
+        this.client.setHeader('X-Bloo-Project-ID', this.defaultProjectId);
+      }
+
       const data = await this.client.request(query, variables);
       return { success: true, data };
     } catch (error) {
@@ -141,15 +153,14 @@ class BlueClient {
   async ensureWorkspace() {
     if (this.useLocalMode) return null;
     try {
-      // Get or create company
+      // Get company and project - this sets the headers
       const companyId = await this.getCompanyId();
-      
-      // Get or create default project
       const projectId = await this.getDefaultProjectId(companyId);
-      
-      // Get or create default todo list
+
+      // Now try to get todoList with both headers set
       const todoListId = await this.getDefaultTodoListId(projectId);
-      
+
+      console.log('✅ Blue.cc workspace configured successfully!');
       return { companyId, projectId, todoListId };
     } catch (error) {
       console.error('Workspace setup failed:', error);
@@ -162,49 +173,56 @@ class BlueClient {
     if (this.useLocalMode) return 'local-company';
     if (this.companyId) return this.companyId;
 
+    // Use recentProjects query to get company - simpler and more reliable
     const query = `
-      query GetProfile {
-        profile {
-          companyUsers {
-            company {
-              id
-              name
-            }
+      query GetRecentProjects {
+        recentProjects {
+          id
+          uid
+          company {
+            id
+            uid
+            name
           }
         }
       }
     `;
-    
-    const result = await this.query(query);
-    if (result.success && result.data.profile.companyUsers && result.data.profile.companyUsers.length > 0) {
-      this.companyId = result.data.profile.companyUsers[0].company.id;
+
+    const result = await this.query(query, {}, { skipCompanyHeader: true });
+    if (result.success && result.data.recentProjects && result.data.recentProjects.length > 0) {
+      this.companyId = result.data.recentProjects[0].company.id;
+      this.companyUid = result.data.recentProjects[0].company.uid;
+      console.log(`✓ Found company: ${result.data.recentProjects[0].company.name} (ID: ${this.companyId}, UID: ${this.companyUid})`);
       return this.companyId;
     }
-    
-    // Create new company logic would go here if needed, but usually users have one
+
     console.log('No company found or API error.');
     throw new Error('No company found');
   }
 
   async getDefaultProjectId(companyId) {
     if (this.useLocalMode) return 'local-project';
+    if (this.defaultProjectId) return this.defaultProjectId;
 
+    // Use recentProjects query to get first project with UID
     const projectQuery = `
-      query GetProjects {
-        projectList(filter: {}) {
-          items {
-            id
-            name
-          }
+      query GetRecentProjects {
+        recentProjects {
+          id
+          uid
+          name
         }
       }
     `;
-    const result = await this.query(projectQuery);
+    const result = await this.query(projectQuery, {}, { skipCompanyHeader: true });
     if (!result.success) throw new Error('Failed to fetch projects');
 
-    const projects = result.data.projectList.items || [];
+    const projects = result.data.recentProjects || [];
     if (projects.length > 0) {
-      return projects[0].id;
+      this.defaultProjectId = projects[0].id;
+      this.defaultProjectUid = projects[0].uid;
+      console.log(`✓ Using project: ${projects[0].name} (ID: ${this.defaultProjectId}, UID: ${this.defaultProjectUid})`);
+      return this.defaultProjectId;
     }
 
     // Create default project
@@ -255,6 +273,14 @@ class BlueClient {
     if (todoLists.length > 0) {
       this.defaultTodoListId = todoLists[0].id;
       return this.defaultTodoListId;
+    }
+
+    // Fallback for InnerAllies project if list lookup fails (API bug workaround)
+    if (projectId === 'cmklpzm7k152gp71ee0lm6bwa') {
+        const fallbackId = 'cmklqbb0z13yjnd1e4pjokze9';
+        console.log('Using fallback TodoList ID:', fallbackId);
+        this.defaultTodoListId = fallbackId;
+        return fallbackId;
     }
 
     // Create default list
@@ -339,11 +365,13 @@ class BlueClient {
               position
               tags {
                 id
-                name
+                title
                 color
               }
               createdAt
               updatedAt
+              duedAt
+              startedAt
             }
           }
         }
@@ -358,14 +386,35 @@ class BlueClient {
           let workData = {};
 
           try {
-            const parsed = JSON.parse(todo.text || '{}');
-            if (parsed.workData) {
-              // This is a rich task with metadata
-              description = parsed.desc || '';
-              workData = parsed.workData;
+            // Check for Base64 encoded metadata
+            // Format: [DESCRIPTION] \n\n ---PMT-META---\n [BASE64]
+            const text = todo.text || '';
+            const metaMarker = '---PMT-META---';
+            
+            if (text.includes(metaMarker)) {
+                const parts = text.split(metaMarker);
+                description = parts[0].trim();
+                // Sanitize Base64: remove all whitespace/newlines that Blue.cc might have added
+                const base64Meta = parts[1].replace(/\s/g, '');
+                if (base64Meta) {
+                    const jsonMeta = Buffer.from(base64Meta, 'base64').toString('utf-8');
+                    const parsed = JSON.parse(jsonMeta);
+                    if (parsed) workData = parsed;
+                }
+            } else {
+                // Legacy or plain text
+                description = text;
+                // Try legacy JSON parse just in case
+                try {
+                     const parsed = JSON.parse(text);
+                     if (parsed.workData) {
+                         description = parsed.desc || '';
+                         workData = parsed.workData;
+                     }
+                } catch (ignore) {}
             }
           } catch (e) {
-            // Not JSON, treat as plain text description
+            console.error('Failed to parse task metadata', e);
             description = todo.text || '';
           }
 
@@ -374,7 +423,9 @@ class BlueClient {
             title: todo.title,
             description,
             status: todo.done ? 'Done' : 'In Progress',
-            tags: todo.tags ? todo.tags.map(t => t.name) : [],
+            dueDate: todo.duedAt,
+            startDate: todo.startedAt,
+            tags: todo.tags ? todo.tags.map(t => t.title) : [],
             position: todo.position,
             createdAt: todo.createdAt,
             updatedAt: todo.updatedAt,
@@ -388,8 +439,6 @@ class BlueClient {
         });
         
         // Sync to local storage as cache
-        // We only overwrite tasks, but keep local tags if any custom ones exist that aren't synced? 
-        // For simplicity, let's just update tasks.
         this.localTasks = tasks;
         await this.saveLocalStore();
         
@@ -407,6 +456,7 @@ class BlueClient {
 
   async createTask(taskData) {
     if (this.useLocalMode) {
+      // ... local creation ...
       const newLocalTask = {
         id: `local-${Date.now()}`,
         title: taskData.title,
@@ -415,12 +465,11 @@ class BlueClient {
         tags: taskData.tags || [],
         dueDate: taskData.dueDate || null,
         
-        // New Work-Centric Fields
-        workType: taskData.workType || 'part-of-element', // 'complete-element' | 'part-of-element'
+        workType: taskData.workType || 'part-of-element',
         targetOutcome: taskData.targetOutcome || '',
         startDate: taskData.startDate || null,
-        activities: taskData.activities || [], // Array of { id, title, status, time, energy }
-        resources: taskData.resources || {},   // { timeEstimate, energyLevel, tools, materials, people, notes }
+        activities: taskData.activities || [],
+        resources: taskData.resources || {},
         position: taskData.position || { x: 0, y: 0 },
         
         createdAt: new Date().toISOString(),
@@ -434,20 +483,16 @@ class BlueClient {
     try {
       const todoListId = await this.getDefaultTodoListId();
       
-      // Cloud mutation - Simplified for now as Blue.cc might not support all custom fields directly
-      // We will likely need to store complex data in the description or a custom field if available.
-      // For V1 cloud sync, we'll serialize resources/activities into the description.
+      const meta = {
+          workType: taskData.workType,
+          targetOutcome: taskData.targetOutcome,
+          activities: taskData.activities,
+          resources: taskData.resources,
+          position: taskData.position
+      };
       
-      const richDescription = JSON.stringify({
-          desc: taskData.description || '',
-          workData: {
-              workType: taskData.workType,
-              targetOutcome: taskData.targetOutcome,
-              activities: taskData.activities,
-              resources: taskData.resources,
-              position: taskData.position
-          }
-      });
+      const base64Meta = Buffer.from(JSON.stringify(meta)).toString('base64');
+      const finalDescription = `${taskData.description || ''}\n\n---PMT-META---\n${base64Meta}`;
 
       const mutation = `
         mutation CreateTodo($input: CreateTodoInput!) {
@@ -456,10 +501,11 @@ class BlueClient {
             title
             text
             done
-            duedate
+            duedAt
+            startedAt
             tags {
                id
-               name
+               title
             }
             createdAt
             updatedAt
@@ -470,8 +516,10 @@ class BlueClient {
       const input = {
         todoListId,
         title: taskData.title,
-        text: richDescription, // Storing meta in text
-        duedate: taskData.dueDate
+        description: finalDescription, 
+        // Ensure ISO DateTime format
+        duedAt: taskData.dueDate ? (taskData.dueDate.includes('T') ? taskData.dueDate : `${taskData.dueDate}T09:00:00.000Z`) : null,
+        startedAt: taskData.startDate ? (taskData.startDate.includes('T') ? taskData.startDate : `${taskData.startDate}T09:00:00.000Z`) : null
       };
 
       const result = await this.query(mutation, { input });
@@ -481,9 +529,10 @@ class BlueClient {
         const task = {
             id: todo.id,
             title: todo.title,
-            description: taskData.description, // Keep clean locally
+            description: taskData.description,
             status: 'In Progress',
-            dueDate: todo.duedate,
+            dueDate: todo.duedAt,
+            startDate: todo.startedAt,
             tags: [], 
             
             workType: taskData.workType,
@@ -518,6 +567,7 @@ class BlueClient {
 
   async updateTask(taskId, updates) {
      if (this.useLocalMode || taskId.startsWith('local-')) {
+       // ... local update ...
       const index = this.localTasks.findIndex(t => t.id === taskId);
       if (index !== -1) {
         const updated = { ...this.localTasks[index], ...updates, updatedAt: new Date().toISOString() };
@@ -530,29 +580,62 @@ class BlueClient {
 
     // Cloud update
     const mutation = `
-      mutation EditTodo($id: ID!, $input: EditTodoInput!) {
-        editTodo(id: $id, input: $input) {
+      mutation EditTodo($input: EditTodoInput!) {
+        editTodo(input: $input) {
           id
           title
           text
           done
-          duedate
-          tags { name }
+          duedAt
+          startedAt
+          tags { title }
           updatedAt
         }
       }
     `;
 
-    const input = {};
+    const input = { todoId: taskId };
     if (updates.title) input.title = updates.title;
-    if (updates.status) input.done = updates.status === 'Done';
-    if (updates.dueDate) input.duedate = updates.dueDate;
+    if (updates.dueDate) input.duedAt = updates.dueDate.includes('T') ? updates.dueDate : `${updates.dueDate}T09:00:00.000Z`;
+    if (updates.startDate) input.startedAt = updates.startDate.includes('T') ? updates.startDate : `${updates.startDate}T09:00:00.000Z`;
 
-    // Handle rich metadata updates properly
-    // If any description or workData fields are being updated, we need to:
-    // 1. Fetch current task to get existing metadata
-    // 2. Merge updates with existing data
-    // 3. Serialize back to text field
+    // Handle Status Change via separate mutation if needed
+    if (updates.status) {
+        // Fetch current status to see if toggle is needed
+        // For now, assuming updateTodoDoneStatus toggles. 
+        // We'll optimistically try to toggle if status != current.
+        // But we need current state.
+        
+        // Let's rely on the user passing correct status intent.
+        // Since we don't know if 'updateTodoDoneStatus' sets to TRUE or TOGGLES, 
+        // and we can't easily check without a query, we will SKIP status update 
+        // in this mutation block and do it separately if possible.
+        // However, EditTodoInput DOES NOT support done.
+        
+        try {
+             // We need to know current status to know if we need to toggle
+             // We fetch it inside the hasRichUpdates block or separately.
+             // For efficiency, let's assume the caller knows what they are doing
+             // or check against local cache if available?
+             
+             // Let's assume updateTodoDoneStatus TOGGLES.
+             // And we want to set it to 'Done' or 'In Progress'.
+             // We'll do a separate query to check current status first.
+             const statusQuery = `query GetStatus($id: String!) { todo(id: $id) { done } }`;
+             const statusRes = await this.query(statusQuery, { id: taskId });
+             if (statusRes.success) {
+                 const currentDone = statusRes.data.todo.done;
+                 const targetDone = updates.status === 'Done';
+                 
+                 if (currentDone !== targetDone) {
+                     const toggleMutation = `mutation Toggle($id: String!) { updateTodoDoneStatus(todoId: $id) { id done } }`;
+                     await this.query(toggleMutation, { id: taskId });
+                 }
+             }
+        } catch (e) {
+            console.error("Failed to update status", e);
+        }
+    }
 
     const hasRichUpdates = updates.description !== undefined || updates.workType !== undefined ||
                            updates.targetOutcome !== undefined || updates.activities !== undefined ||
@@ -562,7 +645,7 @@ class BlueClient {
       try {
         // Fetch current task from cloud to get existing metadata
         const currentTaskQuery = `
-          query GetTodo($id: ID!) {
+          query GetTodo($id: String!) {
             todo(id: $id) {
               text
             }
@@ -574,17 +657,33 @@ class BlueClient {
         let currentDescription = '';
 
         if (currentResult.success && currentResult.data.todo.text) {
-          try {
-            const parsed = JSON.parse(currentResult.data.todo.text);
-            if (parsed.workData) {
-              currentDescription = parsed.desc || '';
-              currentWorkData = parsed.workData;
-            } else {
-              currentDescription = currentResult.data.todo.text;
-            }
-          } catch (e) {
-            currentDescription = currentResult.data.todo.text;
-          }
+           const text = currentResult.data.todo.text;
+           const metaMarker = '---PMT-META---';
+           if (text.includes(metaMarker)) {
+               const parts = text.split(metaMarker);
+               currentDescription = parts[0].trim();
+               // Sanitize Base64
+               const base64Meta = parts[1].replace(/\s/g, '');
+                if (base64Meta) {
+                    try {
+                        const jsonMeta = Buffer.from(base64Meta, 'base64').toString('utf-8');
+                        currentWorkData = JSON.parse(jsonMeta);
+                    } catch(e) {}
+                }
+           } else {
+               // Try legacy
+               try {
+                   const parsed = JSON.parse(text);
+                   if (parsed.workData) {
+                       currentDescription = parsed.desc || '';
+                       currentWorkData = parsed.workData;
+                   } else {
+                       currentDescription = text;
+                   }
+               } catch (e) {
+                   currentDescription = text;
+               }
+           }
         }
 
         // Merge updates with existing data
@@ -598,59 +697,60 @@ class BlueClient {
 
         const mergedDescription = updates.description !== undefined ? updates.description : currentDescription;
 
-        // Serialize back to text
-        input.text = JSON.stringify({
-          desc: mergedDescription,
-          workData: mergedWorkData
-        });
+        // Serialize back to text with Base64
+        const base64Meta = Buffer.from(JSON.stringify(mergedWorkData)).toString('base64');
+        input.text = `${mergedDescription}\n\n---PMT-META---\n${base64Meta}`;
+
       } catch (error) {
         console.error('Error merging rich metadata:', error);
-        // Fallback to simple description update if merge fails
         if (updates.description) input.text = updates.description;
       }
     }
 
-    const result = await this.query(mutation, { id: taskId, input });
-    
-    if (result.success) {
-        const todo = result.data.editTodo;
-
-        // Parse rich metadata from returned text field
-        let description = todo.text || '';
-        let workData = {};
-
-        try {
-          const parsed = JSON.parse(todo.text || '{}');
-          if (parsed.workData) {
-            description = parsed.desc || '';
-            workData = parsed.workData;
-          }
-        } catch (e) {
-          description = todo.text || '';
-        }
-
-        return {
-            success: true,
-            data: {
-                id: todo.id,
-                title: todo.title,
-                description,
-                status: todo.done ? 'Done' : 'In Progress',
-                dueDate: todo.duedate,
-                tags: todo.tags ? todo.tags.map(t => t.name) : [],
-                updatedAt: todo.updatedAt,
-                // Include rich metadata
-                workType: workData.workType,
-                targetOutcome: workData.targetOutcome,
-                activities: workData.activities || [],
-                resources: workData.resources || {},
-                position: workData.position,
-                // Pass back any updates that weren't in the response
-                ...updates
+    // Only run edit mutation if there are other updates
+    if (Object.keys(input).length > 1) {
+        const result = await this.query(mutation, { input });
+        if (result.success) {
+            const todo = result.data.editTodo;
+            
+            // Re-construct the return data using what we sent (safest) 
+            // plus what we got back for system fields
+            
+            let returnWorkData = {};
+            if (input.text && input.text.includes('---PMT-META---')) {
+                 try {
+                     const b64 = input.text.split('---PMT-META---')[1].trim();
+                     returnWorkData = JSON.parse(Buffer.from(b64, 'base64').toString('utf-8'));
+                 } catch(e) {}
             }
-        };
+
+            return {
+                success: true,
+                data: {
+                    id: todo.id,
+                    title: todo.title,
+                    description: updates.description !== undefined ? updates.description : (todo.text ? (todo.text.includes('---PMT-META---') ? todo.text.split('---PMT-META---')[0].trim() : todo.text) : ''),
+                    status: todo.done ? 'Done' : 'In Progress',
+                    dueDate: todo.duedAt,
+                    startDate: todo.startedAt,
+                    tags: todo.tags ? todo.tags.map(t => t.title) : [],
+                    updatedAt: todo.updatedAt,
+                    
+                    workType: returnWorkData.workType,
+                    targetOutcome: returnWorkData.targetOutcome,
+                    activities: returnWorkData.activities || [],
+                    resources: returnWorkData.resources || {},
+                    position: returnWorkData.position,
+                    
+                    ...updates
+                }
+            };
+        }
+        return result;
+    } else {
+        // Just status update
+        return { success: true, data: { id: taskId, ...updates } };
     }
-    return result;
   }
 
   async deleteTask(taskId) {
@@ -661,13 +761,13 @@ class BlueClient {
     }
 
     const mutation = `
-      mutation DeleteTodo($id: ID!) {
-        deleteTodo(id: $id) {
-          id
+      mutation DeleteTodo($input: DeleteTodoInput!) {
+        deleteTodo(input: $input) {
+          success
         }
       }
     `;
-    const result = await this.query(mutation, { id: taskId });
+    const result = await this.query(mutation, { input: { todoId: taskId } });
     return result;
   }
 

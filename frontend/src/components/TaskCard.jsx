@@ -5,13 +5,11 @@ import RelationshipMap from './RelationshipMap';
 import ContentPracticeLinker from './ContentPracticeLinker';
 import MilestoneLinker from './MilestoneLinker';
 import api from '../services/api';
+import { useCreateTask } from '../context/CreateTaskContext';
 
 export default function TaskCard({ task, onUpdate, onDelete }) {
-  const [isEditing, setIsEditing] = useState(false);
+  const { openCreateTask } = useCreateTask();
   const [isExpanded, setIsExpanded] = useState(false);
-  const [editedTitle, setEditedTitle] = useState(task.title);
-  const [editedDesc, setEditedDesc] = useState(task.description);
-  const [editedTags, setEditedTags] = useState(task.tags || []);
   const [relationships, setRelationships] = useState([]);
 
   // Fetch relationships when expanded
@@ -28,22 +26,6 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
       } catch (e) {
           console.error("Failed to fetch relationships", e);
       }
-  };
-
-  const handleSave = async () => {
-    await onUpdate(task.id, {
-        title: editedTitle,
-        description: editedDesc,
-        tags: editedTags
-    });
-    setIsEditing(false);
-  };
-
-  const handleCancel = () => {
-    setEditedTitle(task.title);
-    setEditedDesc(task.description);
-    setEditedTags(task.tags || []);
-    setIsEditing(false);
   };
 
   // Determine status styles
@@ -86,43 +68,6 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
     return base + "bg-slate-700/30 text-slate-400 border-slate-700/30";
   };
 
-  if (isEditing) {
-      return (
-        <div className="glass-panel rounded-xl p-5 border border-blue-500/30 bg-blue-500/5 mb-4">
-            <div className="space-y-4">
-                <input
-                    value={editedTitle}
-                    onChange={(e) => setEditedTitle(e.target.value)}
-                    className="w-full bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-white focus:border-blue-500 focus:outline-none"
-                    placeholder="Task Title"
-                    autoFocus
-                />
-                <textarea
-                    value={editedDesc}
-                    onChange={(e) => setEditedDesc(e.target.value)}
-                    className="w-full bg-slate-900/80 border border-slate-700 rounded-lg p-3 text-slate-300 focus:border-blue-500 focus:outline-none resize-none"
-                    placeholder="Description"
-                    rows={3}
-                />
-                
-                <div>
-                    <label className="text-xs text-slate-500 block mb-2">Tags</label>
-                    <TagSelector selectedTags={editedTags} onChange={setEditedTags} />
-                </div>
-
-                <div className="flex justify-end gap-2 pt-2">
-                    <button onClick={handleCancel} className="px-4 py-2 rounded-lg bg-slate-800 text-slate-400 hover:bg-slate-700 transition-colors flex items-center gap-2">
-                        <X size={14} /> Cancel
-                    </button>
-                    <button onClick={handleSave} className="px-4 py-2 rounded-lg bg-blue-600 text-white hover:bg-blue-500 transition-colors flex items-center gap-2">
-                        <Save size={14} /> Save Changes
-                    </button>
-                </div>
-            </div>
-        </div>
-      );
-  }
-
   return (
     <div className={`glass-panel rounded-xl p-5 group hover:border-blue-500/30 transition-all duration-300 mb-4 ${isExpanded ? 'bg-slate-800/60 ring-1 ring-blue-500/20' : ''}`}>
       <div className="flex justify-between items-start gap-4">
@@ -155,9 +100,9 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
                 <span>{task.status}</span>
             </div>
             
-            <div className={`flex gap-1 transition-opacity ${isExpanded ? 'opacity-100' : 'opacity-0 group-hover:opacity-100'}`}>
+            <div className="flex gap-1">
                  <button 
-                    onClick={() => setIsEditing(true)} 
+                    onClick={() => openCreateTask(task)} 
                     className="p-2 rounded-lg text-slate-400 hover:text-blue-400 hover:bg-blue-500/10 transition-colors"
                     title="Edit Task"
                  >
@@ -194,6 +139,22 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
                         <div className="flex items-center gap-2">
                             <Activity size={12}/> ID: {task.id.substring(0, 8)}...
                         </div>
+                        {/* Show extra metadata if available */}
+                        {task.startDate && (
+                            <div className="mt-2 text-slate-400">
+                                Start: {new Date(task.startDate).toLocaleDateString()}
+                            </div>
+                        )}
+                        {task.dueDate && (
+                            <div className="text-slate-400">
+                                Target: {new Date(task.dueDate).toLocaleDateString()}
+                            </div>
+                        )}
+                        {task.resources && task.resources.timeEstimate && (
+                            <div className="mt-2 text-blue-400">
+                                Est: {task.resources.timeEstimate}h
+                            </div>
+                        )}
                       </div>
                   </div>
 

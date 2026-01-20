@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Calendar, Hash, Clock, AlertCircle } from 'lucide-react';
-import api from '../services/api';
+import { useTasks } from '../context/TasksContext';
 
 const DIMENSIONS = [
   { id: 'content', label: 'Content', color: 'blue', tags: ['substack', 'newsletter', 'books'] },
@@ -11,30 +11,16 @@ const DIMENSIONS = [
 ];
 
 export default function TimelineView() {
-  const [tasks, setTasks] = useState([]);
+  const { tasks, loading, error } = useTasks(); // Use unified context
   const [groupedTasks, setGroupedTasks] = useState({});
-  const [expandedDim, setExpandedDim] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [expandedDim, setExpandedDim] = useState('content'); // Default expanded
 
+  // Group tasks whenever the master list changes
   useEffect(() => {
-    fetchData();
-  }, []);
-
-  const fetchData = async () => {
-    try {
-      const data = await api.getTasks();
-      setTasks(data);
-      groupTasksByDimension(data);
-      // Auto-expand Content by default
-      setExpandedDim('content');
-    } catch (err) {
-      console.error(err);
-      setError('Failed to load tasks.');
-    } finally {
-      setLoading(false);
+    if (tasks.length > 0) {
+        groupTasksByDimension(tasks);
     }
-  };
+  }, [tasks]);
 
   const groupTasksByDimension = (allTasks) => {
     const grouped = {};
@@ -67,7 +53,7 @@ export default function TimelineView() {
     setGroupedTasks(grouped);
   };
 
-  if (loading) return <div className="text-slate-500">Loading timeline...</div>;
+  if (loading && tasks.length === 0) return <div className="text-slate-500">Loading timeline...</div>;
   if (error) return <div className="text-red-500 p-4 border border-red-500/20 rounded bg-red-500/10">{error}</div>;
 
   return (

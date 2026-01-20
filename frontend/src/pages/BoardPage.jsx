@@ -17,9 +17,8 @@ import ActivityNode from '../components/WorkflowBoard/ActivityNode';
 import WorkWizardPanel from '../components/WorkflowBoard/WorkWizardPanel';
 import ConnectionModal from '../components/WorkflowBoard/ConnectionModal';
 import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
-import api from '../services/api';
-import { useCreateTask } from '../context/CreateTaskContext';
-import MindMapView from '../components/MindMapView';
+import { useTasks } from '../context/TasksContext'; // Use Context
+import { useCreateTask } from '../context/CreateTaskContext'; // UI context
 
 const nodeTypes = {
   work: WorkNode,
@@ -27,104 +26,88 @@ const nodeTypes = {
 };
 
 export default function BoardPage() {
+  const { tasks, loading, createTask, updateTask } = useTasks(); // Consume unified state
   const [activeDimension, setActiveDimension] = useState('content');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [selectedNode, setSelectedNode] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [connectionModal, setConnectionModal] = useState(null);
-  const [loading, setLoading] = useState(true);
   const [isInteractive, setIsInteractive] = useState(true);
 
-  // Load Works from Backend
+  // Sync Nodes with Tasks Context
   useEffect(() => {
-    loadDimensionData(activeDimension);
-  }, [activeDimension]);
+    if (loading) return;
+    
+    // Filter tasks for current dimension
+    const dimensionTasks = tasks.filter(t => {
+        if (!activeDimension) return true;
+        // Check if task tags include the dimension ID
+        return t.tags && t.tags.some(tag => tag.toLowerCase() === activeDimension.toLowerCase());
+    });
 
-  const loadDimensionData = async (dimension) => {
-      setLoading(true);
-      try {
-          const tasks = await api.getTasks({ dimension }); 
-          // Note: In real app, we need to filter further or trust backend. 
-          // Current backend simple filter might return cross-dimension if tags overlap.
-          // We'll trust the list for now and map them to nodes.
-          
-          const loadedNodes = [];
-          const loadedEdges = [];
+    const loadedNodes = [];
+    const loadedEdges = [];
 
-          // 1. Map Works
-          // Assuming 'workType' exists on tasks or we treat all top-level tasks in this dim as Works
-          const workTasks = tasks.filter(t => t.workType); // Filter by metadata if available, else all?
-          // Fallback: treat all tasks as works for V1 migration if workType missing, 
-          // but better to only show ones created via this new tool or explicitly tagged.
-          // Let's assume we map ALL tasks for now to visualize existing data.
-          
-          workTasks.forEach((task, i) => {
-              // Position: stored in metadata or auto-layout fallback
-              const position = task.position || { x: 100 + (i % 3) * 300, y: 100 + Math.floor(i / 3) * 200 };
-              
-              loadedNodes.push({
-                  id: task.id,
-                  type: 'work',
-                  position,
-                  data: {
-                      label: task.title,
-                      status: task.status === 'Done' ? 'complete' : 'in-progress',
-                      element: task.tags.find(t => t !== dimension), // Simple guess
-                      dimension: dimension,
-                      activities: task.activities || [],
-                      resources: task.resources || {},
-                      // ... copy other meta
-                  }
-              });
+    // Map Tasks to Nodes
+    dimensionTasks.forEach((task, i) => {
+        // Use stored position or default layout
+        const position = task.position || { x: 100 + (i % 3) * 300, y: 100 + Math.floor(i / 3) * 200 };
+        
+        loadedNodes.push({
+            id: task.id,
+            type: 'work',
+            position,
+            data: {
+                label: task.title,
+                description: task.description,
+                status: task.status === 'Done' ? 'complete' : 'in-progress',
+                element: task.tags.find(t => t !== activeDimension),
+                dimension: activeDimension,
+                activities: task.activities || [],
+                resources: task.resources || {},
+                workType: task.workType,
+                targetOutcome: task.targetOutcome,
+                startDate: task.startDate,
+                targetCompletion: task.dueDate,
+            }
+        });
 
-              // 2. Map Activities (Children)
-              if (task.activities && task.activities.length > 0) {
-                  task.activities.forEach((act, idx) => {
-                      const actId = `${task.id}-act-${idx}`;
-                      loadedNodes.push({
-                          id: actId,
-                          type: 'activity',
-                          position: { x: position.x + (idx * 50), y: position.y + 150 + (idx * 50) }, // Temp overlap position
-                          data: { ...act, label: act.title }
-                      });
-                      loadedEdges.push({
-                          id: `e-${task.id}-${actId}`,
-                          source: task.id,
-                          target: actId,
-                          type: 'smoothstep',
-                          style: { stroke: '#475569' }
-                      });
-                  });
-              }
-          });
+        // Map Activities (Visual Children)
+        if (task.activities && task.activities.length > 0) {
+            task.activities.forEach((act, idx) => {
+                const actId = `${task.id}-act-${idx}`;
+                loadedNodes.push({
+                    id: actId,
+                    type: 'activity',
+                    position: { x: position.x + (idx * 160) - ((task.activities.length * 160)/2) + 80, y: position.y + 200 },
+                    data: { ...act, label: act.title }
+                });
+                loadedEdges.push({
+                    id: `e-${task.id}-${actId}`,
+                    source: task.id,
+                    target: actId,
+                    type: 'smoothstep',
+                    style: { stroke: '#475569' }
+                });
+            });
+        }
+    });
 
-          if (loadedNodes.length === 0) {
-              // Initialize with one empty node if nothing exists
-              const initialNode = {
-                id: `new-work-${Date.now()}`,
-                type: 'work',
-                position: { x: 400, y: 300 },
-                data: {
-                  label: 'New Work',
-                  status: 'empty',
-                  element: null,
-                  dimension: dimension,
-                  activities: [],
-                  resources: {},
-                },
-              };
-              loadedNodes.push(initialNode);
-          }
+    // If no tasks, show a starter node (optional, but maybe better to show empty state?)
+    // Keeping existing logic for now but marking it as 'unsaved'
+    if (loadedNodes.length === 0 && !loading) {
+         // Optionally add a placeholder or just let it be empty
+    }
 
-          setNodes(loadedNodes);
-          setEdges(loadedEdges);
-      } catch (e) {
-          console.error(e);
-      } finally {
-          setLoading(false);
-      }
-  };
+    // Only update if significantly different to avoid jitter during drag? 
+    // Actually, ReactFlow handles internal state. We should only overwrite if 'tasks' changed from OUTSIDE.
+    // This is the hard part of syncing local vs global state. 
+    // For V1: We overwrite. This might reset drag if another user updated, but we are single user.
+    setNodes(loadedNodes);
+    setEdges(loadedEdges);
+
+  }, [tasks, activeDimension, loading]); // Re-run when global tasks change or dimension changes
 
   // Handle node click → Open wizard
   const onNodeClick = useCallback((event, node) => {
@@ -139,9 +122,9 @@ export default function BoardPage() {
     setConnectionModal(params);
   }, []);
 
-  // Add new Work node
+  // Add new Work node (Visual only until saved)
   const addNewWork = useCallback(() => {
-    const newId = `work-${Date.now()}`;
+    const newId = `new-work-${Date.now()}`;
     const newNode = {
       id: newId,
       type: 'work',
@@ -156,94 +139,50 @@ export default function BoardPage() {
       },
     };
     setNodes((nds) => [...nds, newNode]);
+    // We do NOT add to 'tasks' context yet. It's a "draft" node.
+    setSelectedNode(newNode);
+    setWizardOpen(true); // Open wizard immediately
   }, [activeDimension, setNodes]);
 
   // Handle Wizard Save
   const handleWizardSave = async (updatedData) => {
-      // 1. Update the Work Node
-      const updatedNode = {
-          ...selectedNode,
-          data: { ...selectedNode.data, ...updatedData }
+      // 1. Prepare Data
+      const taskPayload = {
+          title: updatedData.label,
+          description: updatedData.description,
+          tags: [activeDimension, updatedData.element].filter(Boolean),
+          dueDate: updatedData.targetCompletion,
+          startDate: updatedData.startDate,
+          workType: updatedData.workType,
+          targetOutcome: updatedData.targetOutcome,
+          activities: updatedData.activities,
+          resources: updatedData.resources,
+          position: selectedNode.position
       };
-      
-      setNodes((nds) => nds.map((n) => n.id === selectedNode.id ? updatedNode : n));
 
-      // 2. Persist to Backend (Create or Update)
-      // If it's a new node (local ID), create. If existing (from backend), update.
       try {
-          let savedTask;
-          if (selectedNode.id.startsWith('work-') || selectedNode.id.startsWith('new-work-')) {
-              // Create
-              const res = await api.createTask({
-                  title: updatedData.label,
-                  description: updatedData.description,
-                  tags: [activeDimension, updatedData.element].filter(Boolean),
-                  dueDate: updatedData.targetCompletion,
-                  // Pass meta
-                  workType: updatedData.workType,
-                  targetOutcome: updatedData.targetOutcome,
-                  startDate: updatedData.startDate,
-                  activities: updatedData.activities,
-                  resources: updatedData.resources,
-                  position: selectedNode.position
-              });
-              savedTask = res.data || res; // api wrapper might return data directly
-              
-              // Replace local ID with server ID in nodes
-              setNodes(nds => nds.map(n => n.id === selectedNode.id ? { ...n, id: savedTask.id } : n));
+          if (selectedNode.id.startsWith('new-work-')) {
+              // Create via Context
+              await createTask(taskPayload);
+              // The Context update will trigger useEffect above, re-rendering nodes with real ID
           } else {
-              // Update
-              await api.updateTask(selectedNode.id, {
-                  title: updatedData.label,
-                  description: updatedData.description,
-                  dueDate: updatedData.targetCompletion,
-                  workType: updatedData.workType,
-                  targetOutcome: updatedData.targetOutcome,
-                  startDate: updatedData.startDate,
-                  activities: updatedData.activities,
-                  resources: updatedData.resources,
-                  // position updates usually happen on drag stop, handled separately
-              });
-              savedTask = { ...updatedNode, id: selectedNode.id };
+              // Update via Context
+              await updateTask(selectedNode.id, taskPayload);
           }
-
-          // 3. Handle Child Activity Nodes
-          // Remove old activity nodes for this work
-          const nonActivityNodes = nodes.filter(n => !n.id.startsWith(`${selectedNode.id}-act-`)); // Tricky with ID change
-          // For simplicity in V1: Just regenerate visual activity nodes from data
-          const newActivityNodes = (updatedData.activities || []).map((act, idx) => ({
-              id: `${savedTask.id || selectedNode.id}-act-${idx}`,
-              type: 'activity',
-              position: { 
-                  x: selectedNode.position.x + (idx * 160) - ((updatedData.activities.length * 160)/2) + 80, 
-                  y: selectedNode.position.y + 200 
-              },
-              data: { ...act, label: act.title }
-          }));
-          
-          const newActivityEdges = newActivityNodes.map(an => ({
-              id: `e-${savedTask.id || selectedNode.id}-${an.id}`,
-              source: savedTask.id || selectedNode.id,
-              target: an.id,
-              type: 'smoothstep',
-              style: { stroke: '#475569' }
-          }));
-
-          // Re-merge nodes
-          // We need to be careful not to duplicate or lose other nodes
-          // Ideally we filter out old children of THIS node and add new ones
-          // But IDs might have changed.
-          // Let's just refresh the view or append safely.
-          // For now, appending new ones.
-          setNodes(nds => [...nds, ...newActivityNodes]);
-          setEdges(eds => [...eds, ...newActivityEdges]);
-
       } catch (e) {
           console.error("Save failed", e);
       }
 
       setWizardOpen(false);
   };
+
+  // Persist Dragged Position
+  const onNodeDragStop = useCallback((event, node) => {
+      // Only update backend for real nodes
+      if (!node.id.startsWith('new-work-') && !node.id.includes('-act-')) {
+          updateTask(node.id, { position: node.position });
+      }
+  }, [updateTask]);
 
   // Auto-layout
   const onLayout = useCallback(() => {
@@ -263,8 +202,6 @@ export default function BoardPage() {
 
     const layoutedNodes = nodes.map((node) => {
       const nodeWithPosition = dagreGraph.node(node.id);
-      // We only want to move them if they aren't manually positioned? 
-      // Dagre overrides. That's fine for "Auto Layout" button.
       return {
         ...node,
         position: {
@@ -275,6 +212,9 @@ export default function BoardPage() {
     });
 
     setNodes(layoutedNodes);
+    
+    // Persist new layout positions? 
+    // Ideally yes, but bulk update might be heavy. Let's skip bulk persist for V1.
   }, [nodes, edges, setNodes]);
 
   return (
@@ -294,6 +234,7 @@ export default function BoardPage() {
           onEdgesChange={onEdgesChange}
           onConnect={onConnect}
           onNodeClick={onNodeClick}
+          onNodeDragStop={onNodeDragStop} // Added Drag Listener
           nodeTypes={nodeTypes}
           fitView
           nodesDraggable={isInteractive}
@@ -301,6 +242,7 @@ export default function BoardPage() {
           elementsSelectable={isInteractive}
           className="bg-slate-950"
         >
+          {/* ... Controls & Background ... */}
           <Background color="#1e293b" gap={20} />
           <Controls
             style={{
@@ -322,7 +264,6 @@ export default function BoardPage() {
             }}
           />
 
-          {/* Floating Action Panel */}
           <Panel position="top-right" className="flex gap-2">
             <button
               onClick={addNewWork}
