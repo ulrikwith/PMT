@@ -239,5 +239,3 @@ function getDimensionColor(dimension) {
 }
 
 export default memo(WorkNode);
-
-export default memo(WorkNode);
