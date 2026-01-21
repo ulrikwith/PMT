@@ -1,109 +1,155 @@
 # Project Management Tool (PMT)
 
-A modern, full-stack project management application designed to interface with the Blue.cc platform. This project serves as a robust prototype for a personalized productivity environment, featuring a resilient backend architecture that ensures continuous operation even when external API services are unavailable.
+A personal project management application designed for content creators, integrating task management with Blue.cc cloud sync.
 
-## 🚀 Technology Stack
-
-The application is built using a modern JavaScript/TypeScript stack, separated into a distinct frontend and backend.
-
-### **Frontend**
-*   **React (v18):** UI library for building a responsive and interactive component-based interface.
-*   **Vite:** Next-generation build tool for lightning-fast development and optimized production builds.
-*   **Axios:** Promise-based HTTP client for seamless communication with the backend.
-*   **CSS/Styling:** Clean, modular styling for a distraction-free user experience.
-
-### **Backend**
-*   **Node.js & Express:** Lightweight and flexible server framework to handle API requests.
-*   **GraphQL Request:** A minimal GraphQL client to interface with the Blue.cc API.
-*   **Dotenv:** Environment variable management for secure credential storage.
-*   **CORS:** Middleware to enable secure cross-origin resource sharing between frontend and backend.
+**Status**: ✅ Production Ready
+**Last Updated**: 2026-01-21
 
 ---
 
-## 🔗 The Blue.cc API Backbone
+## Quick Start
 
-This application is architected to be a custom interface for [Blue.cc](https://blue.cc), a powerful project management platform. Instead of building a database from scratch, PMT leverages Blue.cc's GraphQL API as its primary data store.
+### Prerequisites
+- Node.js 18+
+- npm or bun
+- Blue.cc account (for cloud sync)
 
-### **Integration Architecture**
-The backend (`blueClient.js`) acts as a proxy and translation layer:
-1.  **Schema Mapping:** It translates generic concepts like "Tasks" and "Workspaces" into Blue.cc's specific "Todos" and "Projects" schema.
-2.  **Auto-Provisioning:** The system intelligently checks if the user has an existing workspace. If not, it automatically provisions a **Company**, **Project**, and **Todo List** via the API, ensuring a zero-setup experience for new users.
+### Installation
 
-### **Resilient "Hybrid" Data Strategy**
-To ensure reliability, we implemented a robust **Fall-Back Mechanism**:
-*   **The Challenge:** External APIs can have strict permissioning, rate limits, or provisioning delays (e.g., a newly created company not being immediately accessible).
-*   **The Solution:** The backend employs an **In-Memory Store** alongside the API connection.
-    *   When the Blue.cc API is reachable and authorized, data flows directly to/from the cloud.
-    *   If the API denies access or fails (e.g., during complex provisioning states), the system seamlessly switches to the local in-memory store.
-    *   **Result:** The user experiences **zero downtime**. You can create, view, and manage tasks immediately, regardless of the upstream API status.
+```bash
+# Clone repository
+git clone https://github.com/ulrikwith/PMT.git
+cd PMT
 
----
+# Install dependencies
+npm install
 
-## 🌟 Potential for a Personalized PM Tool
+# Setup backend
+cd backend
+cp tasks.json.template tasks.json
+cp .env.example .env
+# Add your Blue.cc API tokens to .env
 
-This project represents the foundation of a bespoke "OS for Work." By building your own PM tool instead of using off-the-shelf software, you unlock significant advantages:
+# Start development servers
+npm run dev        # Terminal 1: Backend (port 3001)
+cd ../frontend
+npm run dev        # Terminal 2: Frontend (port 3002)
+```
 
-### **1. Workflow Customization**
-*   **Specialized Automations:** You can write backend logic to trigger specific actions (e.g., "When I finish a task, send a Slack message" or "Auto-archive tasks after 7 days").
-*   **Custom Views:** Break free from standard Kanban or List views. You could build a "Focus Mode" that shows only one task at a time, or a "Matrix View" for Eisenhower prioritization.
-
-### **2. Data Sovereignty & Aggregation**
-*   **Unified Dashboard:** Since the backend is yours, you can pull in data from *other* sources (GitHub PRs, Jira tickets, Google Calendar events) and display them side-by-side with your Blue.cc tasks.
-*   **Private Notes:** Store sensitive personal notes in a local database (SQLite/Postgres) that never touches the external cloud API, while keeping public tasks synced.
-
-### **3. Rapid Prototyping**
-*   **Experimentation:** Want to try a new productivity method like Pomodoro or Time Blocking? You can code it into the frontend in an afternoon without waiting for a feature request to be approved by a SaaS vendor.
-
----
-
-## 🛠️ Getting Started
-
-### **Prerequisites**
-*   Node.js (v18 or higher recommended)
-*   npm (Node Package Manager)
-
-### **Installation**
-
-1.  **Clone the repository:**
-    ```bash
-    git clone <repository-url>
-    cd PMT
-    ```
-
-2.  **Setup Backend:**
-    ```bash
-    cd backend
-    npm install
-    # Create .env file with your Blue.cc credentials
-    # BLUE_TOKEN_ID=...
-    # BLUE_SECRET_ID=...
-    ```
-
-3.  **Setup Frontend:**
-    ```bash
-    cd ../frontend
-    npm install
-    ```
-
-### **Running the Application**
-
-1.  **Start the Backend:**
-    ```bash
-    cd backend
-    npm run dev
-    # Runs on http://localhost:3001
-    ```
-
-2.  **Start the Frontend:**
-    ```bash
-    cd frontend
-    npm run dev
-    # Runs on http://localhost:5173 (or similar)
-    ```
-
-3.  Open your browser to the frontend URL to start managing your projects!
+### Access Application
+- **Frontend**: http://localhost:3002
+- **Backend API**: http://localhost:3001
 
 ---
 
-## 📄 License
-[MIT](LICENSE)
+## Features
+
+### 📋 Task Management
+- Create, edit, and organize tasks
+- Rich metadata: activities, resources, work types
+- Tag-based categorization (dimensions & elements)
+- Status tracking: To Do, In Progress, Done
+
+### 🎯 Multiple Views
+1. **Tasks View**: List of all tasks with filtering
+2. **Board View**: Visual workflow canvas with drag-and-drop
+3. **Timeline View**: Gantt chart for scheduling
+4. **Readiness View**: Dashboard showing project completion
+
+### ☁️ Blue.cc Cloud Sync
+- Automatic backup to Blue.cc
+- Multi-device access (coming soon)
+- Offline-first with sync when online
+- Data recovery from cloud
+
+### 🎨 Smart Organization
+- **Dimensions**: Content, Practice, Community, Marketing, Admin
+- **Elements**: Substack, Books, Newsletter, etc.
+- **Work Types**: Part-of-element, Delivery-enabler
+- **Activities**: Break tasks into sub-tasks
+
+---
+
+## Blue.cc Integration
+
+### Workspace Structure
+```
+Company: Inner Allies Academy (clzwnz89g20hbx92uay4mzglv)
+  └─ Project: PMT (cmklpzm7k152gp71ee0lm6bwa)
+      └─ TodoList: Tasks (cmklqbb0z13yjnd1e4pjokze9)
+```
+
+### Setup
+1. Get API tokens from Blue.cc
+2. Add to `backend/.env`:
+   ```
+   BLUE_TOKEN_ID=your_token_id
+   BLUE_SECRET_ID=your_secret_id
+   ```
+3. Test connection: `cd backend && node test-bluecc-integration.js`
+
+### Features
+- ✅ Automatic sync on create/update/delete
+- ✅ Rich metadata preserved (activities, resources, positions)
+- ✅ Data recovery after hard reset
+- ✅ Local cache for offline access
+
+---
+
+## Documentation
+
+- **README.md** (this file): Overview and quick start
+- **backend/README.md**: Backend architecture and data storage
+- **docs/**: Additional documentation (see [`docs/`](docs/) folder)
+- **OLD/**: Archived documentation
+
+---
+
+## Development
+
+### Running Tests
+```bash
+# Backend API tests
+cd backend
+node test-bluecc-integration.js
+```
+
+### Key Commands
+```bash
+# Start backend
+cd backend && npm run dev
+
+# Start frontend
+cd frontend && npm run dev
+
+# Clean Blue.cc test data
+cd backend && node cleanup-bluecc-data.js
+```
+
+---
+
+## Troubleshooting
+
+### Frontend won't start
+- Check port 3002 is available
+- Reinstall dependencies: `rm -rf node_modules && npm install`
+
+### Backend API errors
+- Verify tasks.json exists: `cp backend/tasks.json.template backend/tasks.json`
+- Check Blue.cc credentials in .env
+
+### Data recovery
+If local data is lost, backend auto-recovers from Blue.cc cloud.
+
+---
+
+## Contact
+
+**Developer**: Ulrik With Andersen
+**Email**: ulrikwith@gmail.com
+**GitHub**: https://github.com/ulrikwith/PMT
+
+---
+
+**Version**: 1.0.0
+**Status**: ✅ Production Ready
