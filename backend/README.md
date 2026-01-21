@@ -30,21 +30,33 @@ If you're setting up the project for the first time:
 
 ## Blue.cc Integration Status
 
-### ✅ FULLY WORKING - Cloud Sync Enabled!
+### ⚠️ IMPORTANT: Blue.cc Account Structure
 
-**Last Tested**: 2026-01-20
-**Status**: All integration tests passing
+**CRITICAL INFORMATION**:
+- Blue.cc only allows **ONE company per account**
+- Your company is: **Inner Allies Academy**
+- Organization URL: https://blue.cc/org/inner-allies-academy
+- Organization ID: `clzwnz89g20hbx92uay4mzglv`
 
-#### What's Working
-- ✅ API authentication (tokens valid)
-- ✅ Company: "Inner Allies Academy" (UID: b7601c606ec54c68918034b06fac01bb)
-- ✅ Project: "InnerAllies" (UID: e6af414f10734aff84fe8445c3aecb53)
-- ✅ TodoList configured (ID: cmklqbb0z13yjnd1e4pjokze9)
-- ✅ Task creation with rich metadata
-- ✅ Task retrieval from cloud
-- ✅ Task updates preserving all metadata
-- ✅ Task deletion
-- ✅ Rich metadata serialization (activities, resources, workType, position)
+**DO NOT**:
+- Try to create additional companies (not permitted)
+- Use any other company IDs in the code
+- Delete the "Inner Allies Academy" organization
+
+**If you see other companies**: These will be removed by Blue.cc support. Only use Inner Allies Academy.
+
+### Current Integration Status
+
+**Last Updated**: 2026-01-20
+**Status**: Reconfiguring after workspace cleanup
+
+#### Blue.cc Workspace Configuration
+- ✅ Company: "Inner Allies Academy"
+  - URL: https://blue.cc/org/inner-allies-academy
+  - ID: `clzwnz89g20hbx92uay4mzglv`
+  - UID: `b7601c606ec54c68918034b06fac01bb`
+- 🔄 Project: To be configured within Inner Allies Academy
+- 🔄 TodoList: To be set up for PMT application data
 
 #### Test Results
 Run the integration test suite:
