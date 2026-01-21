@@ -203,6 +203,13 @@ class BlueClient {
   async getDefaultProjectId(companyId) {
     if (this.useLocalMode) return 'local-project';
     if (this.defaultProjectId) return this.defaultProjectId;
+    
+    // Check Env
+    if (process.env.BLUE_PROJECT_ID) {
+        this.defaultProjectId = process.env.BLUE_PROJECT_ID;
+        console.log(`✓ Using configured project ID: ${this.defaultProjectId}`);
+        return this.defaultProjectId;
+    }
 
     // Use recentProjects query to get first project with UID
     const projectQuery = `
@@ -249,6 +256,13 @@ class BlueClient {
     if (this.useLocalMode) return 'local-todolist';
     if (this.defaultTodoListId) return this.defaultTodoListId;
 
+    // Check Env
+    if (process.env.BLUE_TODO_LIST_ID) {
+        this.defaultTodoListId = process.env.BLUE_TODO_LIST_ID;
+        console.log(`✓ Using configured TodoList ID: ${this.defaultTodoListId}`);
+        return this.defaultTodoListId;
+    }
+
     // Use projectId if provided, otherwise fetch it
     if (!projectId) {
        const companyId = await this.getCompanyId();
@@ -272,16 +286,12 @@ class BlueClient {
     const todoLists = result.data.project.todoLists || [];
     if (todoLists.length > 0) {
       this.defaultTodoListId = todoLists[0].id;
+      console.log(`✓ Found TodoList: ${todoLists[0].title} (ID: ${this.defaultTodoListId})`);
       return this.defaultTodoListId;
     }
 
-    // Fallback for InnerAllies project if list lookup fails (API bug workaround)
-    if (projectId === 'cmklpzm7k152gp71ee0lm6bwa') {
-        const fallbackId = 'cmklqbb0z13yjnd1e4pjokze9';
-        console.log('Using fallback TodoList ID:', fallbackId);
-        this.defaultTodoListId = fallbackId;
-        return fallbackId;
-    }
+    // No TodoLists found - create a new one
+    console.log('⚠️  No TodoLists found in project. Creating default "Tasks" list...');
 
     // Create default list
     const createListMutation = `
@@ -380,6 +390,81 @@ class BlueClient {
       const result = await this.query(query, { todoListId });
       
       if (result.success) {
+        // Temporary storage to rebuild relationships/milestones from cloud source-of-truth
+        const cloudRelationships = [];
+        const cloudMilestoneLinks = [];
+
+        // Get all todo IDs for comment fetching
+        const todoIds = result.data.todoList.todos.map(todo => todo.id);
+
+        // Fetch comments for all todos in parallel
+        const commentPromises = todoIds.map(todoId =>
+          this.getCommentsForTodo(todoId).catch(err => {
+            console.warn(`Failed to fetch comments for ${todoId}:`, err);
+            return { success: false, data: [] };
+          })
+        );
+
+        const commentResults = await Promise.all(commentPromises);
+
+        // Parse relationship and milestone data from comments
+        commentResults.forEach((commentsResult, index) => {
+          if (commentsResult.success && commentsResult.data) {
+            const todoId = todoIds[index];
+            commentsResult.data.forEach(comment => {
+              if (comment.html) {
+                // Check for relationship comment
+                const relMatch = comment.html.match(/data-pmt-relationship="([^"]+)"/);
+                if (relMatch) {
+                  try {
+                    // Extract Base64 data from HTML
+                    const base64Match = comment.html.match(/>([A-Za-z0-9+/=]+)</);
+                    if (base64Match) {
+                      const base64Data = base64Match[1];
+                      const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8');
+                      const relData = JSON.parse(jsonString);
+                      cloudRelationships.push({
+                        id: relData.id,
+                        fromTaskId: relData.fromTaskId,
+                        toTaskId: relData.toTaskId,
+                        type: relData.type,
+                        label: relData.label,
+                        createdAt: relData.createdAt,
+                        commentId: comment.id // Store for deletion
+                      });
+                    }
+                  } catch (e) {
+                    console.error(`Failed to parse relationship comment ${comment.id}:`, e);
+                  }
+                }
+
+                // Check for milestone comment
+                const milestoneMatch = comment.html.match(/data-pmt-milestone="([^"]+)"/);
+                if (milestoneMatch) {
+                  try {
+                    // Extract Base64 data from HTML
+                    const base64Match = comment.html.match(/>([A-Za-z0-9+/=]+)</);
+                    if (base64Match) {
+                      const base64Data = base64Match[1];
+                      const jsonString = Buffer.from(base64Data, 'base64').toString('utf-8');
+                      const linkData = JSON.parse(jsonString);
+                      cloudMilestoneLinks.push({
+                        taskId: linkData.taskId,
+                        milestoneId: linkData.milestoneId,
+                        createdAt: linkData.createdAt,
+                        commentId: comment.id // Store for deletion
+                      });
+                    }
+                  } catch (e) {
+                    console.error(`Failed to parse milestone comment ${comment.id}:`, e);
+                  }
+                }
+              }
+            });
+          }
+        });
+
+        // Parse all tasks
         const tasks = result.data.todoList.todos.map(todo => {
           // Parse rich metadata from text field
           let description = todo.text || '';
@@ -387,36 +472,39 @@ class BlueClient {
 
           try {
             // Check for Base64 encoded metadata
-            // Format: [DESCRIPTION] \n\n ---PMT-META---\n [BASE64]
             const text = todo.text || '';
             const metaMarker = '---PMT-META---';
             
             if (text.includes(metaMarker)) {
                 const parts = text.split(metaMarker);
                 description = parts[0].trim();
-                // Sanitize Base64: remove all whitespace/newlines that Blue.cc might have added
+                // Sanitize Base64
                 const base64Meta = parts[1].replace(/\s/g, '');
                 if (base64Meta) {
                     const jsonMeta = Buffer.from(base64Meta, 'base64').toString('utf-8');
                     const parsed = JSON.parse(jsonMeta);
-                    if (parsed) workData = parsed;
+                    if (parsed) {
+                        // Compact format
+                        workData = {
+                            workType: parsed.wt,
+                            targetOutcome: parsed.to,
+                            activities: parsed.a || [],
+                            resources: parsed.r || {},
+                            position: parsed.p
+                        };
+                    }
                 }
             } else {
-                // Legacy or plain text
+                // Plain text description
                 description = text;
-                // Try legacy JSON parse just in case
-                try {
-                     const parsed = JSON.parse(text);
-                     if (parsed.workData) {
-                         description = parsed.desc || '';
-                         workData = parsed.workData;
-                     }
-                } catch (ignore) {}
             }
           } catch (e) {
             console.error('Failed to parse task metadata', e);
             description = todo.text || '';
           }
+
+          // Note: Relationships and milestones are stored as comments
+          // They are populated from cloudRelationships/cloudMilestoneLinks below
 
           return {
             id: todo.id,
@@ -434,14 +522,39 @@ class BlueClient {
             targetOutcome: workData.targetOutcome,
             activities: workData.activities || [],
             resources: workData.resources || {},
-            ...(workData.position && { position: workData.position })
+            ...(workData.position && { position: workData.position }),
+            // Internal use only (preserved in metadata but not exposed as top-level task props usually)
+            // But good to have if needed
+            _relationships: workData.relationships || [],
+            _milestones: workData.milestones || []
           };
         });
         
+        // Populate _relationships and _milestones on each task based on metadata
+        tasks.forEach(task => {
+          task._relationships = cloudRelationships
+            .filter(r => r.fromTaskId === task.id)
+            .map(r => ({
+              id: r.id,
+              toTaskId: r.toTaskId,
+              type: r.type,
+              label: r.label
+            }));
+
+          task._milestones = cloudMilestoneLinks
+            .filter(l => l.taskId === task.id)
+            .map(l => l.milestoneId);
+        });
+
         // Sync to local storage as cache
         this.localTasks = tasks;
+        this.localRelationships = cloudRelationships; // Overwrite local with Cloud Truth
+        this.localMilestoneLinks = cloudMilestoneLinks; // Overwrite local with Cloud Truth
+
         await this.saveLocalStore();
-        
+
+        console.log(`✓ Loaded ${tasks.length} tasks, ${cloudRelationships.length} relationships, ${cloudMilestoneLinks.length} milestone links from cloud`);
+
         return { success: true, data: tasks };
       }
       
@@ -471,6 +584,9 @@ class BlueClient {
         activities: taskData.activities || [],
         resources: taskData.resources || {},
         position: taskData.position || { x: 0, y: 0 },
+        // New fields
+        relationships: [],
+        milestones: [],
         
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -488,7 +604,10 @@ class BlueClient {
           targetOutcome: taskData.targetOutcome,
           activities: taskData.activities,
           resources: taskData.resources,
-          position: taskData.position
+          position: taskData.position,
+          // Initialize empty arrays
+          relationships: [],
+          milestones: []
       };
       
       const base64Meta = Buffer.from(JSON.stringify(meta)).toString('base64');
@@ -517,7 +636,6 @@ class BlueClient {
         todoListId,
         title: taskData.title,
         description: finalDescription, 
-        // Ensure ISO DateTime format
         duedAt: taskData.dueDate ? (taskData.dueDate.includes('T') ? taskData.dueDate : `${taskData.dueDate}T09:00:00.000Z`) : null,
         startedAt: taskData.startDate ? (taskData.startDate.includes('T') ? taskData.startDate : `${taskData.startDate}T09:00:00.000Z`) : null
       };
@@ -540,6 +658,9 @@ class BlueClient {
             activities: taskData.activities,
             resources: taskData.resources,
             position: taskData.position,
+            
+            _relationships: [],
+            _milestones: [],
 
             createdAt: todo.createdAt,
             updatedAt: todo.updatedAt
@@ -551,6 +672,10 @@ class BlueClient {
             }
             task.tags = taskData.tags;
         }
+
+        // Add to local cache for immediate availability
+        this.localTasks.push(task);
+        await this.saveLocalStore();
 
         return { success: true, data: task };
       }
@@ -601,26 +726,7 @@ class BlueClient {
 
     // Handle Status Change via separate mutation if needed
     if (updates.status) {
-        // Fetch current status to see if toggle is needed
-        // For now, assuming updateTodoDoneStatus toggles. 
-        // We'll optimistically try to toggle if status != current.
-        // But we need current state.
-        
-        // Let's rely on the user passing correct status intent.
-        // Since we don't know if 'updateTodoDoneStatus' sets to TRUE or TOGGLES, 
-        // and we can't easily check without a query, we will SKIP status update 
-        // in this mutation block and do it separately if possible.
-        // However, EditTodoInput DOES NOT support done.
-        
         try {
-             // We need to know current status to know if we need to toggle
-             // We fetch it inside the hasRichUpdates block or separately.
-             // For efficiency, let's assume the caller knows what they are doing
-             // or check against local cache if available?
-             
-             // Let's assume updateTodoDoneStatus TOGGLES.
-             // And we want to set it to 'Done' or 'In Progress'.
-             // We'll do a separate query to check current status first.
              const statusQuery = `query GetStatus($id: String!) { todo(id: $id) { done } }`;
              const statusRes = await this.query(statusQuery, { id: taskId });
              if (statusRes.success) {
@@ -637,53 +743,67 @@ class BlueClient {
         }
     }
 
+    // Note: relationships and milestones are local-only (not synced to Blue.cc due to field size limits)
     const hasRichUpdates = updates.description !== undefined || updates.workType !== undefined ||
                            updates.targetOutcome !== undefined || updates.activities !== undefined ||
                            updates.resources !== undefined || updates.position !== undefined;
 
     if (hasRichUpdates) {
       try {
-        // Fetch current task from cloud to get existing metadata
-        const currentTaskQuery = `
-          query GetTodo($id: String!) {
-            todo(id: $id) {
-              text
-            }
-          }
-        `;
-        const currentResult = await this.query(currentTaskQuery, { id: taskId });
-
         let currentWorkData = {};
         let currentDescription = '';
-
-        if (currentResult.success && currentResult.data.todo.text) {
-           const text = currentResult.data.todo.text;
-           const metaMarker = '---PMT-META---';
-           if (text.includes(metaMarker)) {
-               const parts = text.split(metaMarker);
-               currentDescription = parts[0].trim();
-               // Sanitize Base64
-               const base64Meta = parts[1].replace(/\s/g, '');
-                if (base64Meta) {
-                    try {
-                        const jsonMeta = Buffer.from(base64Meta, 'base64').toString('utf-8');
-                        currentWorkData = JSON.parse(jsonMeta);
-                    } catch(e) {}
+        
+        // Prefer local cache to avoid eventual consistency issues with rapid updates
+        const localTask = this.localTasks.find(t => t.id === taskId);
+        
+        if (localTask) {
+            currentDescription = localTask.description || '';
+            currentWorkData = {
+                workType: localTask.workType,
+                targetOutcome: localTask.targetOutcome,
+                activities: localTask.activities,
+                resources: localTask.resources,
+                position: localTask.position,
+                relationships: localTask._relationships || [],
+                milestones: localTask._milestones || []
+            };
+        } else {
+            // Fallback: Fetch current task from cloud
+            const currentTaskQuery = `
+              query GetTodo($id: String!) {
+                todo(id: $id) {
+                  text
                 }
-           } else {
-               // Try legacy
-               try {
-                   const parsed = JSON.parse(text);
-                   if (parsed.workData) {
-                       currentDescription = parsed.desc || '';
-                       currentWorkData = parsed.workData;
-                   } else {
-                       currentDescription = text;
-                   }
-               } catch (e) {
+              }
+            `;
+            const currentResult = await this.query(currentTaskQuery, { id: taskId });
+    
+            if (currentResult.success && currentResult.data.todo.text) {
+               const text = currentResult.data.todo.text;
+               const metaMarker = '---PMT-META---';
+               if (text.includes(metaMarker)) {
+                   const parts = text.split(metaMarker);
+                   currentDescription = parts[0].trim();
+                   // Sanitize Base64
+                   const base64Meta = parts[1].replace(/\s/g, '');
+                    if (base64Meta) {
+                        try {
+                            const jsonMeta = Buffer.from(base64Meta, 'base64').toString('utf-8');
+                            const parsed = JSON.parse(jsonMeta);
+                            // Expand compact format
+                            currentWorkData = {
+                                workType: parsed.wt,
+                                targetOutcome: parsed.to,
+                                activities: parsed.a || [],
+                                resources: parsed.r || {},
+                                position: parsed.p
+                            };
+                        } catch(e) {}
+                    }
+               } else {
                    currentDescription = text;
                }
-           }
+            }
         }
 
         // Merge updates with existing data
@@ -697,8 +817,16 @@ class BlueClient {
 
         const mergedDescription = updates.description !== undefined ? updates.description : currentDescription;
 
-        // Serialize back to text with Base64
-        const base64Meta = Buffer.from(JSON.stringify(mergedWorkData)).toString('base64');
+        // Serialize back to text with Base64 (compact format)
+        const compactWorkData = {
+          wt: mergedWorkData.workType,
+          to: mergedWorkData.targetOutcome,
+          a: mergedWorkData.activities || [],
+          r: mergedWorkData.resources || {},
+          p: mergedWorkData.position
+        };
+
+        const base64Meta = Buffer.from(JSON.stringify(compactWorkData)).toString('base64');
         input.text = `${mergedDescription}\n\n---PMT-META---\n${base64Meta}`;
 
       } catch (error) {
@@ -712,38 +840,68 @@ class BlueClient {
         const result = await this.query(mutation, { input });
         if (result.success) {
             const todo = result.data.editTodo;
-            
-            // Re-construct the return data using what we sent (safest) 
+
+            // Re-construct the return data using what we sent (safest)
             // plus what we got back for system fields
-            
+
             let returnWorkData = {};
-            if (input.text && input.text.includes('---PMT-META---')) {
+            // Prefer input.text (what we wrote) over todo.text (eventual consistency issue)
+            const textContent = input.text || todo.text || '';
+
+            if (textContent && textContent.includes('---PMT-META---')) {
                  try {
-                     const b64 = input.text.split('---PMT-META---')[1].trim();
-                     returnWorkData = JSON.parse(Buffer.from(b64, 'base64').toString('utf-8'));
-                 } catch(e) {}
+                     const b64 = textContent.split('---PMT-META---')[1].trim();
+                     const parsed = JSON.parse(Buffer.from(b64, 'base64').toString('utf-8'));
+                     // Expand compact format
+                     returnWorkData = {
+                         workType: parsed.wt,
+                         targetOutcome: parsed.to,
+                         activities: parsed.a || [],
+                         resources: parsed.r || {},
+                         position: parsed.p
+                     };
+                 } catch(e) {
+                     console.error('Failed to parse returnWorkData:', e);
+                 }
             }
 
-            return {
-                success: true,
-                data: {
+            const updatedTask = {
                     id: todo.id,
                     title: todo.title,
-                    description: updates.description !== undefined ? updates.description : (todo.text ? (todo.text.includes('---PMT-META---') ? todo.text.split('---PMT-META---')[0].trim() : todo.text) : ''),
+                    description: updates.description !== undefined ? updates.description : (textContent.includes('---PMT-META---') ? textContent.split('---PMT-META---')[0].trim() : textContent),
                     status: todo.done ? 'Done' : 'In Progress',
                     dueDate: todo.duedAt,
                     startDate: todo.startedAt,
                     tags: todo.tags ? todo.tags.map(t => t.title) : [],
                     updatedAt: todo.updatedAt,
-                    
+
                     workType: returnWorkData.workType,
                     targetOutcome: returnWorkData.targetOutcome,
                     activities: returnWorkData.activities || [],
                     resources: returnWorkData.resources || {},
                     position: returnWorkData.position,
-                    
+
+                    // Relationships and milestones come from comments (not stored in task metadata)
+                    _relationships: [],
+                    _milestones: [],
+
                     ...updates
-                }
+            };
+
+            // Update local cache
+            const cacheIndex = this.localTasks.findIndex(t => t.id === taskId);
+            if (cacheIndex !== -1) {
+                // Preserve local-only relationships and milestones
+                updatedTask._relationships = this.localTasks[cacheIndex]._relationships || [];
+                updatedTask._milestones = this.localTasks[cacheIndex]._milestones || [];
+                this.localTasks[cacheIndex] = updatedTask;
+            }
+
+            await this.saveLocalStore();
+
+            return {
+                success: true,
+                data: updatedTask
             };
         }
         return result;
@@ -807,8 +965,40 @@ class BlueClient {
           await this.saveLocalStore();
           return { success: true, data: newTag };
       }
-      // Cloud create tag
-      return { success: true, data: { name, color } };
+
+      // Cloud create tag - FULL IMPLEMENTATION
+      try {
+          const createTagMutation = `
+            mutation CreateTag($input: CreateTagInput!) {
+              createTag(input: $input) {
+                id
+                title
+                color
+              }
+            }
+          `;
+
+          const result = await this.query(createTagMutation, {
+              input: { title: name, color: color || '#888888' }
+          });
+
+          if (result.success) {
+              console.log(`✓ Created tag "${name}" with color ${color || '#888888'}`);
+              return {
+                  success: true,
+                  data: {
+                      id: result.data.createTag.id,
+                      name: result.data.createTag.title,
+                      color: result.data.createTag.color
+                  }
+              };
+          }
+
+          return result;
+      } catch (error) {
+          console.error('Error creating tag:', error);
+          return { success: false, error: error.message };
+      }
   }
 
   async addTagToTask(taskId, tagName) {
@@ -820,52 +1010,298 @@ class BlueClient {
           }
           return { success: true };
       }
-      // Cloud add tag to task
-      // Needs finding tag ID and associating
-      return { success: true };
+
+      // Cloud add tag to task - FULL IMPLEMENTATION
+      try {
+          // First, get or create the tag
+          const tagQuery = `
+            query GetTags {
+              tags {
+                id
+                title
+                color
+              }
+            }
+          `;
+
+          const tagsResult = await this.query(tagQuery);
+          let tagId = null;
+
+          if (tagsResult.success && tagsResult.data.tags) {
+              const existingTag = tagsResult.data.tags.find(t => t.title === tagName);
+              if (existingTag) {
+                  tagId = existingTag.id;
+              }
+          }
+
+          // If tag doesn't exist, create it with proper color
+          if (!tagId) {
+              const dimensionTag = Object.values(DIMENSION_TAGS).find(t => t.name === tagName);
+              const color = dimensionTag ? dimensionTag.color : '#888888';
+
+              const createTagMutation = `
+                mutation CreateTag($input: CreateTagInput!) {
+                  createTag(input: $input) {
+                    id
+                    title
+                    color
+                  }
+                }
+              `;
+
+              const createTagResult = await this.query(createTagMutation, {
+                  input: { title: tagName, color }
+              });
+
+              if (createTagResult.success) {
+                  tagId = createTagResult.data.createTag.id;
+                  console.log(`✓ Created tag "${tagName}" with color ${color}`);
+              } else {
+                  console.error('Failed to create tag:', tagName);
+                  return { success: false, error: 'Failed to create tag' };
+              }
+          }
+
+          // Now associate tag with task
+          const addTagMutation = `
+            mutation AddTagToTodo($input: AddTagToTodoInput!) {
+              addTagToTodo(input: $input) {
+                id
+                tags {
+                  id
+                  title
+                  color
+                }
+              }
+            }
+          `;
+
+          const result = await this.query(addTagMutation, {
+              input: { todoId: taskId, tagId }
+          });
+
+          if (result.success) {
+              console.log(`✓ Added tag "${tagName}" to task ${taskId}`);
+          }
+
+          return result;
+      } catch (error) {
+          console.error('Error adding tag to task:', error);
+          return { success: false, error: error.message };
+      }
   }
 
-  // --- Relationship Management ---
+  // --- Comments API ---
 
-  async createTaskRelationship(fromTaskId, toTaskId, type) {
-    // Check if tasks exist (local or cloud) - simplistic check
-    // In a real scenario, we might verify against cloud if not in local mode
-    
-    // Prevent duplicates
+  async createComment(todoId, text, html = null) {
+    if (this.useLocalMode || todoId.startsWith('local-')) {
+      // Local mode doesn't support comments - fallback to metadata approach
+      console.warn('Comments not supported in local mode');
+      return { success: false, error: 'Comments not supported in local mode' };
+    }
+
+    try {
+      const mutation = `
+        mutation CreateComment($input: CreateCommentInput!) {
+          createComment(input: $input) {
+            id
+            text
+            html
+            createdAt
+          }
+        }
+      `;
+
+      const input = {
+        category: 'TODO',
+        categoryId: todoId,
+        text,
+        ...(html && { html })
+      };
+
+      const result = await this.query(mutation, { input });
+
+      if (result.success) {
+        console.log(`✓ Created comment for todo ${todoId}`);
+        return { success: true, data: result.data.createComment };
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error creating comment:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async getCommentsForTodo(todoId) {
+    if (this.useLocalMode || todoId.startsWith('local-')) {
+      return { success: true, data: [] };
+    }
+
+    try {
+      const query = `
+        query GetComments($categoryId: String!, $category: CommentCategory!) {
+          commentList(categoryId: $categoryId, category: $category) {
+            id
+            text
+            html
+            createdAt
+            files
+          }
+        }
+      `;
+
+      const result = await this.query(query, {
+        categoryId: todoId,
+        category: 'TODO'
+      });
+
+      if (result.success) {
+        return { success: true, data: result.data.commentList || [] };
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error fetching comments:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  async deleteComment(commentId) {
+    if (this.useLocalMode) {
+      return { success: false, error: 'Comments not supported in local mode' };
+    }
+
+    try {
+      const mutation = `
+        mutation DeleteComment($id: String!) {
+          deleteComment(id: $id)
+        }
+      `;
+
+      const result = await this.query(mutation, { id: commentId });
+
+      if (result.success) {
+        console.log(`✓ Deleted comment ${commentId}`);
+      }
+
+      return result;
+    } catch (error) {
+      console.error('Error deleting comment:', error);
+      return { success: false, error: error.message };
+    }
+  }
+
+  // --- Relationship Management (Comments-based) ---
+
+  async createTaskRelationship(fromTaskId, toTaskId, type, label = null) {
+    // Check for duplicate
     const exists = this.localRelationships.find(
       r => r.fromTaskId === fromTaskId && r.toTaskId === toTaskId && r.type === type
     );
 
     if (exists) {
-      return { success: true, data: exists };
+        console.log(`✓ Relationship already exists: ${fromTaskId} --[${type}]--> ${toTaskId}`);
+        return { success: true, data: exists };
     }
 
+    const relId = `rel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
     const newRel = {
-      id: `rel-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      id: relId,
       fromTaskId,
       toTaskId,
       type,
+      label,
       createdAt: new Date().toISOString()
     };
 
+    // Store in local cache
     this.localRelationships.push(newRel);
     await this.saveLocalStore();
+
+    // If not in local mode, create a comment in Blue.cc
+    if (!this.useLocalMode && !fromTaskId.startsWith('local-')) {
+      try {
+        const metadataJson = JSON.stringify({
+          id: relId,
+          fromTaskId,
+          toTaskId,
+          type,
+          label,
+          createdAt: newRel.createdAt
+        });
+
+        // Use Base64 encoding in HTML field to store structured data
+        const base64Metadata = Buffer.from(metadataJson).toString('base64');
+
+        // Human-readable text + machine-readable HTML
+        const text = `[PMT Relationship] ${type}${label ? ': ' + label : ''} → ${toTaskId}`;
+        const html = `<div data-pmt-relationship="${relId}">${base64Metadata}</div>`;
+
+        const result = await this.createComment(fromTaskId, text, html);
+
+        if (result.success) {
+          // Store comment ID for deletion later
+          newRel.commentId = result.data.id;
+          console.log(`✓ Created relationship comment in cloud: ${relId}`);
+        } else {
+          console.warn(`⚠️  Failed to create relationship comment in cloud (using local-only): ${result.error}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️  Failed to create relationship comment in cloud (using local-only): ${error.message}`);
+      }
+    }
+
+    console.log(`✓ Created relationship: ${fromTaskId} --[${type}]--> ${toTaskId}`);
     return { success: true, data: newRel };
   }
 
   async getTaskRelationships(taskId) {
+    // We rely on getTasks() to have populated localRelationships from Cloud Data
     const relationships = this.localRelationships.filter(
       r => r.fromTaskId === taskId || r.toTaskId === taskId
     );
-    
-    // Enrich with task details if needed, but for now just return the links
-    // The frontend might need to fetch the related task details
     return { success: true, data: relationships };
   }
   
   async deleteRelationship(relationshipId) {
+      const rel = this.localRelationships.find(r => r.id === relationshipId);
+
+      if (!rel) {
+          console.error(`Relationship ${relationshipId} not found`);
+          return { success: false, error: 'Relationship not found' };
+      }
+
+      // Remove from local cache
       this.localRelationships = this.localRelationships.filter(r => r.id !== relationshipId);
       await this.saveLocalStore();
+
+      // If not in local mode, delete the comment from Blue.cc
+      if (!this.useLocalMode && !rel.fromTaskId.startsWith('local-')) {
+        try {
+          // If we have a stored commentId, use it directly
+          if (rel.commentId) {
+            await this.deleteComment(rel.commentId);
+            console.log(`✓ Deleted relationship comment from cloud: ${relationshipId}`);
+          } else {
+            // Fallback: find the comment by searching for relationship ID in comments
+            const comments = await this.getCommentsForTodo(rel.fromTaskId);
+            if (comments.success) {
+              const relComment = comments.data.find(c =>
+                c.html && c.html.includes(`data-pmt-relationship="${relationshipId}"`)
+              );
+              if (relComment) {
+                await this.deleteComment(relComment.id);
+                console.log(`✓ Deleted relationship comment from cloud: ${relationshipId}`);
+              }
+            }
+          }
+        } catch (error) {
+          console.warn(`⚠️  Failed to delete relationship comment from cloud: ${error.message}`);
+        }
+      }
+
+      console.log(`✓ Deleted relationship: ${relationshipId}`);
       return { success: true };
   }
 
@@ -876,35 +1312,62 @@ class BlueClient {
   // --- Milestone Management ---
 
   async linkTaskToMilestone(taskId, milestoneId) {
-      // Prevent duplicates
-      const exists = this.localMilestoneLinks.find(
-          l => l.taskId === taskId && l.milestoneId === milestoneId
-      );
-      
-      if (exists) return { success: true, data: exists };
+      const exists = this.localMilestoneLinks.find(l => l.taskId === taskId && l.milestoneId === milestoneId);
 
-      const link = {
-          taskId,
-          milestoneId,
-          createdAt: new Date().toISOString()
-      };
-      
+      if (exists) {
+          console.log(`✓ Milestone link already exists: ${taskId} -> ${milestoneId}`);
+          return { success: true, data: exists };
+      }
+
+      const link = { taskId, milestoneId, createdAt: new Date().toISOString() };
       this.localMilestoneLinks.push(link);
       await this.saveLocalStore();
+
+      // If not in local mode, create a comment in Blue.cc
+      if (!this.useLocalMode && !taskId.startsWith('local-')) {
+        try {
+          const metadataJson = JSON.stringify({
+            taskId,
+            milestoneId,
+            createdAt: link.createdAt
+          });
+
+          // Use Base64 encoding in HTML field to store structured data
+          const base64Metadata = Buffer.from(metadataJson).toString('base64');
+
+          // Human-readable text + machine-readable HTML
+          const text = `[PMT Milestone] Linked to ${milestoneId}`;
+          const html = `<div data-pmt-milestone="${milestoneId}">${base64Metadata}</div>`;
+
+          const result = await this.createComment(taskId, text, html);
+
+          if (result.success) {
+            // Store comment ID for deletion later
+            link.commentId = result.data.id;
+            console.log(`✓ Created milestone link comment in cloud: ${taskId} -> ${milestoneId}`);
+          } else {
+            console.warn(`⚠️  Failed to create milestone comment in cloud (using local-only): ${result.error}`);
+          }
+        } catch (error) {
+          console.warn(`⚠️  Failed to create milestone comment in cloud (using local-only): ${error.message}`);
+        }
+      }
+
+      console.log(`✓ Linked task to milestone: ${taskId} -> ${milestoneId}`);
       return { success: true, data: link };
   }
 
   async getTasksForMilestone(milestoneId) {
+      // Use local cache populated from Cloud
       const links = this.localMilestoneLinks.filter(l => l.milestoneId === milestoneId);
       const taskIds = links.map(l => l.taskId);
       
-      // Need to fetch actual task objects
-      // For local mode, it's easy. For cloud, we might need to batch fetch or filter
-      // Here we assume getTasks() returns everything we need for now (optimization later)
-      const allTasksResult = await this.getTasks();
-      if (!allTasksResult.success) return { success: false, error: 'Failed to fetch tasks' };
+      // Ensure tasks are loaded
+      if (this.localTasks.length === 0 && !this.useLocalMode) {
+          await this.getTasks();
+      }
       
-      const tasks = allTasksResult.data.filter(t => taskIds.includes(t.id));
+      const tasks = this.localTasks.filter(t => taskIds.includes(t.id));
       return { success: true, data: tasks };
   }
   

@@ -9,7 +9,7 @@ import ReactFlow, {
   Panel
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, LayoutGrid, Lock, Unlock } from 'lucide-react';
+import { Plus, LayoutGrid, Lock, Unlock, Book, User, Users, Megaphone, Settings } from 'lucide-react';
 import dagre from 'dagre';
 
 import WorkNode from '../components/WorkflowBoard/WorkNode';
@@ -19,23 +19,73 @@ import ConnectionModal from '../components/WorkflowBoard/ConnectionModal';
 import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
 import { useTasks } from '../context/TasksContext'; // Use Context
 import { useCreateTask } from '../context/CreateTaskContext'; // UI context
+import { useBreadcrumbs } from '../context/BreadcrumbContext';
 
 const nodeTypes = {
   work: WorkNode,
   activity: ActivityNode,
 };
 
+const DIMENSION_CONFIG = {
+  content: { label: 'Content', icon: Book, color: 'blue' },
+  practice: { label: 'Practices', icon: User, color: 'emerald' },
+  community: { label: 'Community', icon: Users, color: 'pink' },
+  marketing: { label: 'Marketing', icon: Megaphone, color: 'amber' },
+  admin: { label: 'Admin', icon: Settings, color: 'purple' },
+};
+
 export default function BoardPage() {
-  const { tasks, loading, createTask, updateTask } = useTasks(); // Consume unified state
+  const { tasks, relationships, loading, createTask, updateTask, deleteTask, createRelationship, deleteRelationship } = useTasks(); // Consume unified state
+  const { setBreadcrumbs } = useBreadcrumbs();
   const [activeDimension, setActiveDimension] = useState('content');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
-  const [selectedNode, setSelectedNode] = useState(null);
-  const [wizardOpen, setWizardOpen] = useState(false);
-  const [connectionModal, setConnectionModal] = useState(null);
-  const [isInteractive, setIsInteractive] = useState(true);
+// ...
+  const toggleExpand = useCallback((nodeId) => {
+    setExpandedNodes((prev) => {
+      const next = new Set(prev);
+      if (next.has(nodeId)) {
+        next.delete(nodeId);
+      }
+    });
+  }, []);
 
-  // Sync Nodes with Tasks Context
+  // Update Breadcrumbs
+  useEffect(() => {
+    const config = DIMENSION_CONFIG[activeDimension];
+    if (config) {
+      setBreadcrumbs([
+        { label: 'Board', icon: LayoutGrid },
+        { label: config.label, icon: config.icon, color: config.color }
+      ]);
+    }
+    return () => setBreadcrumbs([]);
+  }, [activeDimension, setBreadcrumbs]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      // Don't trigger if user is typing in an input
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+        return;
+      }
+
+      const keyToDimension = {
+        '1': 'content',
+        '2': 'practice',
+        '3': 'community',
+        '4': 'marketing',
+        '5': 'admin',
+      };
+
+      if (keyToDimension[e.key]) {
+        setActiveDimension(keyToDimension[e.key]);
+      }
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  // Sync Nodes and Edges with Tasks Context
   useEffect(() => {
     if (loading) return;
     
@@ -48,11 +98,36 @@ export default function BoardPage() {
 
     const loadedNodes = [];
     const loadedEdges = [];
+    const dimensionList = ['content', 'practice', 'community', 'marketing', 'admin'];
 
     // Map Tasks to Nodes
     dimensionTasks.forEach((task, i) => {
         // Use stored position or default layout
         const position = task.position || { x: 100 + (i % 3) * 300, y: 100 + Math.floor(i / 3) * 200 };
+        const isExpanded = expandedNodes.has(task.id);
+
+        // Find cross-dimension relationships
+        const crossLinks = relationships.filter(rel => 
+            (rel.fromTaskId === task.id || rel.toTaskId === task.id)
+        ).map(rel => {
+            const otherTaskId = rel.fromTaskId === task.id ? rel.toTaskId : rel.fromTaskId;
+            const otherTask = tasks.find(t => t.id === otherTaskId);
+            
+            // Is it visible in current board?
+            const isVisible = dimensionTasks.some(t => t.id === otherTaskId);
+            if (isVisible) return null;
+
+            const otherDim = otherTask?.tags.find(tag => dimensionList.includes(tag.toLowerCase()));
+            
+            return {
+                id: rel.id,
+                type: rel.type,
+                targetId: otherTaskId,
+                targetDimension: otherDim || 'unknown',
+                targetTitle: otherTask?.title || 'Unknown Task',
+                isOutgoing: rel.fromTaskId === task.id
+            };
+        }).filter(Boolean);
         
         loadedNodes.push({
             id: task.id,
@@ -62,25 +137,38 @@ export default function BoardPage() {
                 label: task.title,
                 description: task.description,
                 status: task.status === 'Done' ? 'complete' : 'in-progress',
-                element: task.tags.find(t => t !== activeDimension),
+                element: task.tags.find(t => !dimensionList.includes(t.toLowerCase())),
                 dimension: activeDimension,
                 activities: task.activities || [],
-                resources: task.resources || {},
+                resources: {},
                 workType: task.workType,
                 targetOutcome: task.targetOutcome,
                 startDate: task.startDate,
                 targetCompletion: task.dueDate,
+                isExpanded,
+                crossLinks,
+                onExpandToggle: () => toggleExpand(task.id),
+                onJumpToWork: (id, dim) => jumpToWork(id, dim),
+                onEdit: () => {
+                  setSelectedNode({ id: task.id, data: { ...task, label: task.title } });
+                  setWizardOpen(true);
+                },
+                onDelete: () => {
+                  if (window.confirm('Are you sure you want to delete this work?')) {
+                    deleteTask(task.id);
+                  }
+                }
             }
         });
 
-        // Map Activities (Visual Children)
-        if (task.activities && task.activities.length > 0) {
+        // Map Activities (Visual Children) - Only if expanded
+        if (isExpanded && task.activities && task.activities.length > 0) {
             task.activities.forEach((act, idx) => {
                 const actId = `${task.id}-act-${idx}`;
                 loadedNodes.push({
                     id: actId,
                     type: 'activity',
-                    position: { x: position.x + (idx * 160) - ((task.activities.length * 160)/2) + 80, y: position.y + 200 },
+                    position: { x: position.x + (idx * 160) - ((task.activities.length * 160)/2) + 80, y: position.y + 250 },
                     data: { ...act, label: act.title }
                 });
                 loadedEdges.push({
@@ -94,20 +182,47 @@ export default function BoardPage() {
         }
     });
 
-    // If no tasks, show a starter node (optional, but maybe better to show empty state?)
-    // Keeping existing logic for now but marking it as 'unsaved'
-    if (loadedNodes.length === 0 && !loading) {
-         // Optionally add a placeholder or just let it be empty
-    }
+    // Map Relationships to Edges
+    relationships.forEach(rel => {
+        // Only show if both nodes are visible in current dimension
+        const sourceVisible = dimensionTasks.some(t => t.id === rel.fromTaskId);
+        const targetVisible = dimensionTasks.some(t => t.id === rel.toTaskId);
 
-    // Only update if significantly different to avoid jitter during drag? 
-    // Actually, ReactFlow handles internal state. We should only overwrite if 'tasks' changed from OUTSIDE.
-    // This is the hard part of syncing local vs global state. 
-    // For V1: We overwrite. This might reset drag if another user updated, but we are single user.
+        if (sourceVisible && targetVisible) {
+            loadedEdges.push({
+                id: rel.id,
+                source: rel.fromTaskId,
+                target: rel.toTaskId,
+                type: 'smoothstep',
+                animated: rel.type === 'feeds-into',
+                label: rel.label || '',
+                style: {
+                    stroke: getConnectionColor(rel.type),
+                    strokeWidth: 2,
+                },
+                markerEnd: {
+                    type: 'arrowclosed',
+                    color: getConnectionColor(rel.type),
+                },
+                data: { type: rel.type, label: rel.label },
+            });
+        }
+    });
+
     setNodes(loadedNodes);
     setEdges(loadedEdges);
 
-  }, [tasks, activeDimension, loading]); // Re-run when global tasks change or dimension changes
+  }, [tasks, relationships, activeDimension, loading, expandedNodes, toggleExpand, deleteTask]);
+
+  // Handle edge deletion
+  const onEdgesDelete = useCallback((edgesToDelete) => {
+    edgesToDelete.forEach(edge => {
+      // Only delete if it's a real relationship (not an activity connector)
+      if (!edge.id.startsWith('e-')) {
+        deleteRelationship(edge.id);
+      }
+    });
+  }, [deleteRelationship]);
 
   // Handle node click → Open wizard
   const onNodeClick = useCallback((event, node) => {
@@ -136,6 +251,7 @@ export default function BoardPage() {
         dimension: activeDimension,
         activities: [],
         resources: {},
+        isExpanded: false,
       },
     };
     setNodes((nds) => [...nds, newNode]);
@@ -191,7 +307,11 @@ export default function BoardPage() {
     dagreGraph.setGraph({ rankdir: 'TB', ranksep: 150, nodesep: 100 });
 
     nodes.forEach((node) => {
-      dagreGraph.setNode(node.id, { width: 256, height: 100 });
+      const isExpanded = node.data?.isExpanded;
+      dagreGraph.setNode(node.id, { 
+        width: isExpanded ? 320 : 256, 
+        height: isExpanded ? 400 : 120 
+      });
     });
 
     edges.forEach((edge) => {
@@ -205,17 +325,21 @@ export default function BoardPage() {
       return {
         ...node,
         position: {
-          x: nodeWithPosition.x - 128,
-          y: nodeWithPosition.y - 50,
+          x: nodeWithPosition.x - (node.data?.isExpanded ? 160 : 128),
+          y: nodeWithPosition.y - (node.data?.isExpanded ? 200 : 60),
         },
       };
     });
 
     setNodes(layoutedNodes);
     
-    // Persist new layout positions? 
-    // Ideally yes, but bulk update might be heavy. Let's skip bulk persist for V1.
-  }, [nodes, edges, setNodes]);
+    // Bulk persist new layout positions
+    layoutedNodes.forEach(node => {
+        if (!node.id.startsWith('new-work-') && !node.id.includes('-act-')) {
+            updateTask(node.id, { position: node.position });
+        }
+    });
+  }, [nodes, edges, setNodes, updateTask]);
 
   return (
     <div className="h-full flex flex-col bg-slate-950">
@@ -232,6 +356,7 @@ export default function BoardPage() {
           edges={edges}
           onNodesChange={onNodesChange}
           onEdgesChange={onEdgesChange}
+          onEdgesDelete={onEdgesDelete} // Added Edge Delete Listener
           onConnect={onConnect}
           onNodeClick={onNodeClick}
           onNodeDragStop={onNodeDragStop} // Added Drag Listener
@@ -294,6 +419,34 @@ export default function BoardPage() {
           </Panel>
         </ReactFlow>
 
+        {/* Empty State / Onboarding */}
+        {nodes.length === 0 && !loading && (
+          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+            <div className="max-w-md p-8 glass-panel border-white/10 rounded-2xl text-center animate-in fade-in zoom-in duration-500 pointer-events-auto">
+              <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
+                <Book className="text-blue-500" size={32} />
+              </div>
+              <h2 className="text-2xl font-bold text-white mb-3">Welcome to your {DIMENSION_CONFIG[activeDimension]?.label} Board</h2>
+              <p className="text-slate-400 mb-8 leading-relaxed">
+                This is a <strong>Process-Oriented</strong> canvas. Instead of listing tasks, start by creating a <strong>Work-Product</strong>—a meaningful outcome you want to produce.
+              </p>
+              <div className="space-y-4">
+                <button
+                  onClick={addNewWork}
+                  className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2"
+                >
+                  <Plus size={20} />
+                  Create Your First Work
+                </button>
+                <div className="text-xs text-slate-500 flex items-center justify-center gap-4">
+                  <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">1-5</kbd> Switch Boards</span>
+                  <span className="flex items-center gap-1"><kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">Drag</kbd> Connect Work</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Side Panel - Work Wizard */}
         {wizardOpen && selectedNode && (
           <WorkWizardPanel
@@ -308,24 +461,8 @@ export default function BoardPage() {
           <ConnectionModal
             connection={connectionModal}
             onConfirm={(connectionType, label) => {
-              const newEdge = {
-                ...connectionModal,
-                type: 'smoothstep',
-                animated: connectionType === 'feeds-into',
-                label: label,
-                style: {
-                  stroke: getConnectionColor(connectionType),
-                  strokeWidth: 2,
-                },
-                markerEnd: {
-                  type: 'arrowclosed',
-                  color: getConnectionColor(connectionType),
-                },
-                data: { type: connectionType, label },
-              };
-              setEdges((eds) => addEdge(newEdge, eds));
+              createRelationship(connectionModal.source, connectionModal.target, connectionType);
               setConnectionModal(null);
-              // Ideally save relationship to backend here
             }}
             onCancel={() => setConnectionModal(null)}
           />

@@ -1,7 +1,7 @@
 # PMT Project Status
 
-**Last Updated**: 2026-01-21
-**Version**: 1.0.0
+**Last Updated**: 2026-01-22
+**Version**: 1.1.0
 **Status**: ✅ Production Ready
 
 ---
@@ -25,14 +25,14 @@ PMT is a personal project management tool with Blue.cc cloud sync integration. A
 - ✅ Frontend: React 18 + TailwindCSS (port 3002)
 - ✅ Backend: Express API (port 3001)
 - ✅ Unified data layer (TasksContext)
-- ✅ Blue.cc cloud sync (automatic backup)
-- ✅ Hybrid storage (local cache + cloud)
+- ✅ Blue.cc cloud sync (active two-way sync)
+- ✅ Hybrid storage (local cache + cloud source-of-truth)
 
 ### Blue.cc Integration
 - ✅ Authentication working
 - ✅ Workspace correctly configured
-- ✅ All 5 integration tests passing
-- ✅ Rich metadata preserved
+- ✅ Rich metadata preserved (Base64 encoded in descriptions)
+- ✅ Relationships stored as structured comments
 - ✅ Data recovery from cloud verified
 
 ### Documentation
@@ -57,13 +57,25 @@ Company: Inner Allies Academy (clzwnz89g20hbx92uay4mzglv)
 ```
 
 ### Data Storage
-- **Local Cache**: `backend/tasks.json` (fast access)
-- **Cloud Backup**: Blue.cc API (automatic sync)
-- **Status**: Empty, ready for production data
+- **Local Cache**: `backend/tasks.json` (fast access, offline support)
+- **Cloud Master**: Blue.cc API (source of truth)
+- **Sync Strategy**: 
+  - Tasks & Tags → Native Blue.cc Objects
+  - Rich Metadata → Base64 in Task Descriptions
+  - Relationships → Structured Comments
+  - Milestones → Structured Comments
 
 ---
 
 ## Recent Achievements
+
+### v1.1.0 - The POPM Update (2026-01-21)
+- ✅ **Enhanced Board View**: Expand/collapse Works to reveal/hide Activities.
+- ✅ **Dimension Navigation**: Hotkeys (1-5) to switch dimensions instantly.
+- ✅ **Cross-Linking**: Visual links to Works in other dimensions with one-click jump.
+- ✅ **Context Visibility**: Global breadcrumbs in Header showing exact location.
+- ✅ **Rich List View**: Progress bars and better visual hierarchy for Works.
+- ✅ **Robust Sync**: Anchored Blue.cc integration using stable List IDs.
 
 ### Documentation Cleanup (2026-01-21)
 - ✅ Reorganized all *.md files
@@ -93,11 +105,11 @@ Company: Inner Allies Academy (clzwnz89g20hbx92uay4mzglv)
 3. Board view position testing
 4. Timeline date display verification
 
-### Version 1.1 Priorities
-- [ ] Sync status indicator in UI
+### Version 1.2 Priorities
+- [ ] Sync status indicator in UI (visual feedback for "Saving..." vs "Saved")
 - [ ] Manual sync trigger button
-- [ ] Conflict resolution for multi-device
-- [ ] Offline mode detection
+- [ ] Conflict resolution for multi-device editing
+- [ ] Offline mode detection and visual indicator
 
 ### Version 2.0 Vision
 - [ ] Real-time collaboration
@@ -126,6 +138,7 @@ Company: Inner Allies Academy (clzwnz89g20hbx92uay4mzglv)
 PMT/
 ├── README.md                    # Main entry point
 ├── STATUS.md                    # This file
+├── PROCESS_ORIENTED_PM_MANIFESTO.md # The Vision
 ├── docs/
 │   ├── BLUECC_SETUP.md         # Cloud sync guide
 │   └── API.md                   # API reference
@@ -134,7 +147,7 @@ PMT/
 └── OLD/                         # Archived documentation
     ├── SESSION_COMPLETE_SUMMARY.md
     ├── TEST_RESULTS.md
-    └── ... (13 archived files)
+    └── ... (19 archived files)
 ```
 
 ---
@@ -209,12 +222,12 @@ cd backend && node import-from-csv.js PMT.csv
 ## Performance Metrics
 
 ### API Response Times
-- GET /api/tasks: < 50ms
+- GET /api/tasks: < 50ms (Cached)
 - POST /api/tasks: < 100ms
 - PUT /api/tasks/:id: < 100ms
 
 ### Blue.cc Sync
-- Initial load: ~3 seconds
+- Initial load: ~3 seconds (fetches tasks + comments)
 - Task creation: ~200ms
 - Task update: ~150ms
 
@@ -228,7 +241,7 @@ cd backend && node import-from-csv.js PMT.csv
 
 ### Frontend
 - Bundle size: ~500KB (minified)
-- Main dependencies: React, TailwindCSS
+- Main dependencies: React, TailwindCSS, ReactFlow
 
 ### Backend
 - tasks.json: < 1MB (typical)
@@ -320,11 +333,15 @@ VITE_API_URL=http://localhost:3001
 
 ## Change Log
 
+### v1.1.0 (2026-01-22)
+- ✅ Updated Hybrid Storage implementation
+- ✅ Process-Oriented Board complete
+- ✅ Status updated to Production Ready
+
 ### v1.0.0 (2026-01-21)
 - ✅ Core features complete
 - ✅ Blue.cc integration working
 - ✅ Documentation reorganized
-- ✅ Production ready
 
 ### Pre-v1.0 (2026-01-17 to 2026-01-20)
 - Unified data layer implementation
@@ -335,5 +352,5 @@ VITE_API_URL=http://localhost:3001
 ---
 
 **Status**: ✅ PRODUCTION READY
-**Next Step**: Manual browser testing
+**Next Step**: User Acceptance Testing
 **Confidence Level**: High - All automated tests passing

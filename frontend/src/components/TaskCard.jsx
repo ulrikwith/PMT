@@ -77,11 +77,36 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
              <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
                 {task.title}
              </h3>
+             {task.workType === 'part-of-element' && (
+               <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider border border-blue-500/20">
+                 Work-Product
+               </span>
+             )}
           </div>
          
           <p className="text-slate-400 text-sm leading-relaxed mb-3">
             {task.description || <span className="italic text-slate-600">No description</span>}
           </p>
+
+          {/* Progress Bar for Works */}
+          {task.activities && task.activities.length > 0 && (
+            <div className="mb-4 max-w-xs">
+              <div className="flex justify-between text-[10px] text-slate-500 mb-1 font-medium">
+                <span>Progress</span>
+                <span>
+                  {Math.round((task.activities.filter(a => a.status === 'done').length / task.activities.length) * 100)}%
+                </span>
+              </div>
+              <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 transition-all"
+                  style={{
+                    width: `${(task.activities.filter(a => a.status === 'done').length / task.activities.length) * 100}%`
+                  }}
+                />
+              </div>
+            </div>
+          )}
           
           <div className="flex flex-wrap gap-2">
             {task.tags && task.tags.map(tag => (

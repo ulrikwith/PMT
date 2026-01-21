@@ -88,11 +88,27 @@ Company: Inner Allies Academy (clzwnz89g20hbx92uay4mzglv)
    ```
 3. Test connection: `cd backend && node test-bluecc-integration.js`
 
+### Hybrid Storage Strategy
+PMT uses a robust **Hybrid Storage** model that combines the speed of local caching with the reliability of cloud persistence.
+
+- **Tasks**: Stored as native Blue.cc "Todos".
+- **Tags**: Mapped to Blue.cc "Tags".
+- **Rich Metadata**: Stored as Base64-encoded JSON within the Blue.cc Todo `text` (description) field using a `---PMT-META---` separator. This allows storing:
+    - Activities
+    - Resources
+    - Work Types
+    - Canvas Positions
+- **Relationships**: Stored as structured **Comments** on tasks in Blue.cc.
+- **Milestone Links**: Stored as structured **Comments** on tasks in Blue.cc.
+
+This strategy ensures that **Blue.cc remains the single source of truth**, allowing for full data recovery if the local cache is lost.
+
 ### Features
-- ✅ Automatic sync on create/update/delete
-- ✅ Rich metadata preserved (activities, resources, positions)
+- ✅ Automatic two-way sync
+- ✅ Rich metadata preserved via description hack
+- ✅ Graph relationships preserved via comments
 - ✅ Data recovery after hard reset
-- ✅ Local cache for offline access
+- ✅ Local cache for offline access and instant UI updates
 
 ---
 

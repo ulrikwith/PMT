@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { Search, Flower, Cloud, HardDrive, Download } from 'lucide-react';
+import { Search, Flower, Cloud, HardDrive, Download, ChevronRight } from 'lucide-react';
 import api from '../services/api';
 import NotificationsMenu from './NotificationsMenu';
+import { useBreadcrumbs } from '../context/BreadcrumbContext';
 
 export default function Header() {
   const [connectionMode, setConnectionMode] = useState('loading');
+  const { breadcrumbs } = useBreadcrumbs();
 
   useEffect(() => {
     checkConnection();
@@ -31,17 +33,38 @@ export default function Header() {
   return (
     <header className="glass-panel border-b border-white/5 px-6 py-4 sticky top-0 z-50">
       <div className="flex items-center justify-between">
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-6">
           {/* Logo */}
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 shrink-0">
             <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-500 flex items-center justify-center">
               <Flower size={18} className="text-white" />
             </div>
             <h1 className="text-xl font-bold text-white tracking-tight">Inner Allies</h1>
           </div>
 
+          {/* Breadcrumbs */}
+          {breadcrumbs.length > 0 && (
+            <nav className="flex items-center gap-2 text-sm">
+              <ChevronRight size={16} className="text-slate-600" />
+              {breadcrumbs.map((crumb, idx) => {
+                const Icon = crumb.icon;
+                return (
+                  <React.Fragment key={idx}>
+                    <div className={`flex items-center gap-2 px-2 py-1 rounded-md transition-all ${crumb.color ? `bg-${crumb.color}-500/10 text-${crumb.color}-400` : 'text-slate-400'}`}>
+                      {Icon && <Icon size={14} />}
+                      <span className="font-medium whitespace-nowrap">{crumb.label}</span>
+                    </div>
+                    {idx < breadcrumbs.length - 1 && (
+                      <ChevronRight size={14} className="text-slate-700" />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </nav>
+          )}
+
           {/* Connection Status */}
-          {connectionMode !== 'loading' && (
+          {connectionMode !== 'loading' && breadcrumbs.length === 0 && (
             <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
               isCloud
                 ? 'bg-emerald-500/10 border-emerald-500/20'

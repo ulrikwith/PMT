@@ -3,9 +3,20 @@ import { useSearchParams } from 'react-router-dom';
 import TaskList from '../components/TaskList';
 import FilterBar from '../components/FilterBar';
 import { useTasks } from '../context/TasksContext';
+import { useBreadcrumbs } from '../context/BreadcrumbContext';
+import { List, Book, User, Users, Megaphone, Settings } from 'lucide-react';
+
+const DIMENSION_CONFIG = {
+  content: { label: 'Content', icon: Book, color: 'blue' },
+  practice: { label: 'Practices', icon: User, color: 'emerald' },
+  community: { label: 'Community', icon: Users, color: 'pink' },
+  marketing: { label: 'Marketing', icon: Megaphone, color: 'amber' },
+  admin: { label: 'Admin', icon: Settings, color: 'purple' },
+};
 
 export default function TasksPage() {
   const { tasks, loading, error, createTask, updateTask, deleteTask, refreshData } = useTasks();
+  const { setBreadcrumbs } = useBreadcrumbs();
   const [searchParams, setSearchParams] = useSearchParams();
 
   // Build filters from URL params
@@ -14,6 +25,23 @@ export default function TasksPage() {
     status: searchParams.get('status') || '',
     search: searchParams.get('search') || '',
   };
+
+  // Update Breadcrumbs
+  useEffect(() => {
+    const crumbs = [{ label: 'Tasks', icon: List }];
+    
+    if (filters.dimension) {
+        const config = DIMENSION_CONFIG[filters.dimension.toLowerCase()];
+        if (config) {
+            crumbs.push({ label: config.label, icon: config.icon, color: config.color });
+        } else {
+            crumbs.push({ label: filters.dimension });
+        }
+    }
+
+    setBreadcrumbs(crumbs);
+    return () => setBreadcrumbs([]);
+  }, [filters.dimension, setBreadcrumbs]);
 
   // Derived state for filtering
   const filteredTasks = tasks.filter(task => {

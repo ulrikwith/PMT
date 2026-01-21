@@ -255,6 +255,84 @@ async function testBlueCC() {
     testsFailed++;
   }
 
+  // Test 4.5: Relationships and Milestones
+  info('\nTest 4.5: Testing Relationships and Milestones...');
+  let secondTaskId;
+  try {
+      // 1. Create a second task to link to
+      const task2 = { title: 'Test Work 2 - Linked' };
+      const createRes = await client.createTask(task2);
+      if (createRes.success) {
+          secondTaskId = createRes.data.id;
+          success(`Second task created: ${secondTaskId}`);
+          
+          // 2. Create Relationship
+          info('  Creating relationship...');
+          const relRes = await client.createTaskRelationship(createdTaskId, secondTaskId, 'feeds-into');
+          if (relRes.success) {
+              success('  ✓ Relationship created via API');
+          } else {
+              error(`  ✗ Failed to create relationship: ${relRes.error}`);
+              testsFailed++;
+          }
+
+          // 3. Link Milestone
+          info('  Linking milestone...');
+          const mileRes = await client.linkTaskToMilestone(createdTaskId, 'milestone-test-123');
+          if (mileRes.success) {
+              success('  ✓ Milestone linked via API');
+          } else {
+              error(`  ✗ Failed to link milestone: ${mileRes.error}`);
+              testsFailed++;
+          }
+
+          // 4. Verify Persistence (Read back from Cloud)
+          await new Promise(resolve => setTimeout(resolve, 2000)); // Wait for cloud propagation
+          info('  Verifying persistence from cloud...');
+          
+          // Force clear local cache to ensure we read from cloud
+          client.localTasks = []; 
+          const fetchRes = await client.getTasks(); // This pulls from cloud and repopulates
+          
+          if (fetchRes.success) {
+              const task1 = fetchRes.data.find(t => t.id === createdTaskId);
+              
+              // Check internal metadata fields directly
+              if (task1 && task1._relationships && task1._relationships.length > 0) {
+                  const rel = task1._relationships.find(r => r.toTaskId === secondTaskId);
+                  if (rel && rel.type === 'feeds-into') {
+                      success('  ✓ Relationship persisted in cloud metadata');
+                  } else {
+                      error('  ✗ Relationship data incorrect or missing');
+                      console.log('    Got Rels:', task1._relationships);
+                      testsFailed++;
+                  }
+              } else {
+                  error('  ✗ No relationships found on task');
+                  testsFailed++;
+              }
+
+              if (task1 && task1._milestones && task1._milestones.includes('milestone-test-123')) {
+                  success('  ✓ Milestone persisted in cloud metadata');
+              } else {
+                  error('  ✗ Milestone missing from cloud metadata');
+                  console.log('    Got Milestones:', task1._milestones);
+                  testsFailed++;
+              }
+          } else {
+              error('  ✗ Failed to fetch tasks for verification');
+              testsFailed++;
+          }
+
+      } else {
+          error('Failed to create second task for linking');
+          testsFailed++;
+      }
+  } catch (e) {
+      error(`Relationship test failed: ${e.message}`);
+      testsFailed++;
+  }
+
   // Test 5: Cleanup - Delete Test Task
   info('\nTest 5: Cleaning up test data...');
   try {
