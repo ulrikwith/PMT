@@ -546,6 +546,28 @@ class BlueClient {
             .map(l => l.milestoneId);
         });
 
+        // --- Eventual Consistency Safety Net ---
+        // Blue.cc API might lag behind recent creations.
+        // Check for tasks in local cache that are missing from cloud but were created recently.
+        const SYNC_GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 minutes
+        const now = Date.now();
+
+        const cloudTaskIds = new Set(tasks.map(t => t.id));
+        
+        this.localTasks.forEach(localTask => {
+            if (!cloudTaskIds.has(localTask.id)) {
+                // Task is missing from cloud response. Check age.
+                const createdTime = new Date(localTask.createdAt).getTime();
+                if (now - createdTime < SYNC_GRACE_PERIOD_MS) {
+                    console.log(`🛡️ Preserving recently created task "${localTask.title}" (${localTask.id}) not yet seen in cloud.`);
+                    tasks.push(localTask);
+                } else {
+                    console.log(`🗑️ Pruning stale local task "${localTask.title}" (${localTask.id}) not found in cloud.`);
+                }
+            }
+        });
+        // ---------------------------------------
+
         // Sync to local storage as cache
         this.localTasks = tasks;
         this.localRelationships = cloudRelationships; // Overwrite local with Cloud Truth
