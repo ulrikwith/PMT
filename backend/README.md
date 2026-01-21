@@ -55,8 +55,11 @@ If you're setting up the project for the first time:
   - URL: https://blue.cc/org/inner-allies-academy
   - ID: `clzwnz89g20hbx92uay4mzglv`
   - UID: `b7601c606ec54c68918034b06fac01bb`
-- 🔄 Project: To be configured within Inner Allies Academy
-- 🔄 TodoList: To be set up for PMT application data
+- ✅ Project: "PMT" (Correct project name!)
+  - ID: `cmklpzm7k152gp71ee0lm6bwa`
+  - UID: `e6af414f10734aff84fe8445c3aecb53`
+- ✅ TodoList: Tasks (cmklqbb0z13yjnd1e4pjokze9)
+  - Status: Empty and ready for production data
 
 #### Test Results
 Run the integration test suite:
