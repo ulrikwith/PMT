@@ -39,14 +39,27 @@ export default function BoardPage() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [activeDimension, setActiveDimension] = useState('content');
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
-// ...
+  const [edges, setEdges, onEdgesChange] = useEdgesState([]);
+  const [expandedNodes, setExpandedNodes] = useState(new Set());
+  const [selectedNode, setSelectedNode] = useState(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
+  const [connectionModal, setConnectionModal] = useState(null);
+  const [isInteractive, setIsInteractive] = useState(true);
+
   const toggleExpand = useCallback((nodeId) => {
     setExpandedNodes((prev) => {
       const next = new Set(prev);
       if (next.has(nodeId)) {
         next.delete(nodeId);
+      } else {
+        next.add(nodeId);
       }
+      return next;
     });
+  }, []);
+
+  const jumpToWork = useCallback((id, dim) => {
+    setActiveDimension(dim.toLowerCase());
   }, []);
 
   // Update Breadcrumbs
