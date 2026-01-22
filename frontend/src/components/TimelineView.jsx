@@ -182,6 +182,14 @@ function TimelineTaskItem({ task, color }) {
                         <Clock size={12} /> Unscheduled
                     </div>
                 )}
+
+                {/* Activity Count Indicator */}
+                {task.activities && task.activities.length > 0 && (
+                    <div className="text-[10px] text-slate-500 flex items-center gap-1">
+                        <span className="w-1.5 h-1.5 rounded-full bg-blue-500/50"></span>
+                        {task.activities.length} activities
+                    </div>
+                )}
             </div>
         </div>
     );
