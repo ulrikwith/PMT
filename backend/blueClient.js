@@ -546,30 +546,32 @@ class BlueClient {
             .map(l => l.milestoneId);
         });
 
-        // --- Eventual Consistency Safety Net ---
-        // Blue.cc API might lag behind recent creations.
-        // Check for tasks in local cache that are missing from cloud but were created recently.
-        const SYNC_GRACE_PERIOD_MS = 2 * 60 * 1000; // 2 minutes
-        const now = Date.now();
-
-        const cloudTaskIds = new Set(tasks.map(t => t.id));
+        // --- Data Safety Strategy: Merge & Preserve ---
+        // Blue.cc is the Source of Truth, BUT we never delete local data implicitly.
+        // If a task is in Local but not in Cloud, we assume:
+        // 1. It was just created (Eventual Consistency)
+        // 2. Cloud is returning partial data (Pagination/Error)
+        // 3. It was deleted in Cloud (Zombie risk, but better than Data Loss)
+        
+        const cloudTaskMap = new Map(tasks.map(t => t.id));
         
         this.localTasks.forEach(localTask => {
-            if (!cloudTaskIds.has(localTask.id)) {
-                // Task is missing from cloud response. Check age.
-                const createdTime = new Date(localTask.createdAt).getTime();
-                if (now - createdTime < SYNC_GRACE_PERIOD_MS) {
-                    console.log(`🛡️ Preserving recently created task "${localTask.title}" (${localTask.id}) not yet seen in cloud.`);
-                    tasks.push(localTask);
-                } else {
-                    console.log(`🗑️ Pruning stale local task "${localTask.title}" (${localTask.id}) not found in cloud.`);
-                }
+            if (!cloudTaskMap.has(localTask.id)) {
+                // Task is missing from cloud response. 
+                // PRESERVE IT. Do not delete.
+                // We trust local data is valuable.
+                console.log(`🛡️ Preserving local task "${localTask.title}" (${localTask.id}) - Missing from cloud sync.`);
+                tasks.push(localTask);
             }
         });
+        
+        // Remove duplicates if any (sanity check)
+        const uniqueTasks = Array.from(new Map(tasks.map(item => [item.id, item])).values());
+        
         // ---------------------------------------
 
         // Sync to local storage as cache
-        this.localTasks = tasks;
+        this.localTasks = uniqueTasks;
         this.localRelationships = cloudRelationships; // Overwrite local with Cloud Truth
         this.localMilestoneLinks = cloudMilestoneLinks; // Overwrite local with Cloud Truth
 
