@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { ChevronDown, Calendar, Hash, Clock, AlertCircle } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
+import { useNavigate } from 'react-router-dom';
 
 const DIMENSIONS = [
   { id: 'content', label: 'Content', color: 'blue', tags: ['substack', 'newsletter', 'books'] },
@@ -14,6 +15,7 @@ export default function TimelineView() {
   const { tasks, loading, error } = useTasks(); // Use unified context
   const [groupedTasks, setGroupedTasks] = useState({});
   const [expandedDim, setExpandedDim] = useState('content'); // Default expanded
+  const navigate = useNavigate();
 
   // Group tasks whenever the master list changes
   useEffect(() => {
@@ -70,13 +72,14 @@ export default function TimelineView() {
           tasks={groupedTasks[dim.id] || []}
           isExpanded={expandedDim === dim.id}
           onToggle={() => setExpandedDim(expandedDim === dim.id ? null : dim.id)}
+          onNavigate={(path) => navigate(path)}
         />
       ))}
     </div>
   );
 }
 
-function DimensionCard({ dimension, tasks, isExpanded, onToggle }) {
+function DimensionCard({ dimension, tasks, isExpanded, onToggle, onNavigate }) {
   const getColorClasses = (color) => {
     const map = {
       blue: 'text-blue-500 bg-blue-500/10 border-blue-500/20',
@@ -122,7 +125,12 @@ function DimensionCard({ dimension, tasks, isExpanded, onToggle }) {
            ) : (
                <div className="space-y-3">
                    {tasks.map(task => (
-                       <TimelineTaskItem key={task.id} task={task} color={dimension.color} />
+                       <TimelineTaskItem 
+                            key={task.id} 
+                            task={task} 
+                            color={dimension.color} 
+                            onNavigate={onNavigate}
+                       />
                    ))}
                </div>
            )}
@@ -132,7 +140,7 @@ function DimensionCard({ dimension, tasks, isExpanded, onToggle }) {
   );
 }
 
-function TimelineTaskItem({ task, color }) {
+function TimelineTaskItem({ task, color, onNavigate }) {
     // Simple visual mapping for color to border/bg
     const accentColor = {
       blue: 'border-blue-500/30 hover:border-blue-500/50',
@@ -143,9 +151,17 @@ function TimelineTaskItem({ task, color }) {
     }[color] || 'border-slate-700';
 
     const isDone = task.status === 'Done';
-
+    
     return (
-        <div className={`p-4 rounded-lg bg-slate-900/40 border transition-all flex justify-between items-start gap-4 ${accentColor} ${isDone ? 'opacity-60' : ''}`}>
+        <div 
+            onClick={() => {
+                // Determine dimension from tags to switch tab
+                const dimTag = task.tags?.find(t => ['content', 'practice', 'community', 'marketing', 'admin'].includes(t.toLowerCase()));
+                const query = dimTag ? `?dimension=${dimTag.toLowerCase()}&edit=${task.id}` : `?edit=${task.id}`;
+                onNavigate(`/board${query}`);
+            }}
+            className={`p-4 rounded-lg bg-slate-900/40 border transition-all flex justify-between items-start gap-4 cursor-pointer ${accentColor} ${isDone ? 'opacity-60' : ''}`}
+        >
             <div className="flex-1">
                 <div className="flex items-center gap-2 mb-1">
                     <h4 className={`font-medium text-sm ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
