@@ -17,6 +17,7 @@ import ActivityNode from '../components/WorkflowBoard/ActivityNode';
 import WorkWizardPanel from '../components/WorkflowBoard/WorkWizardPanel';
 import ConnectionModal from '../components/WorkflowBoard/ConnectionModal';
 import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
+import MissionControl from '../components/WorkflowBoard/MissionControl';
 import { useTasks } from '../context/TasksContext';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { DIMENSIONS, getDimensionConfig } from '../constants/taxonomy';
@@ -384,6 +385,10 @@ function BoardPageInner() {
           initialCenterDone.current = false;
         }}
       />
+
+      <div className="px-6 pt-4">
+        <MissionControl dimension={activeDimension} />
+      </div>
 
       <div className="flex-1 relative border-t border-white/5">
         <ReactFlow
