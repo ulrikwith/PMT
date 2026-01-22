@@ -128,7 +128,7 @@ export default function Sidebar() {
   };
 
   const navItems = [
-    { to: "/board", icon: LayoutDashboard, label: "Create Project" },
+    { to: "/board", icon: LayoutDashboard, label: "Projects" },
     { to: "/", icon: List, label: "Project List", count: taskCounts.total },
     { to: "/timeline", icon: Calendar, label: "Timeline" },
     { to: "/readiness", icon: Target, label: "Readiness" },

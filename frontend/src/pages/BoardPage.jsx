@@ -410,7 +410,7 @@ function BoardPageInner() {
               className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center gap-2"
             >
               <Plus size={18} />
-              Add Work
+              Add Project
             </button>
           </Panel>
         </ReactFlow>

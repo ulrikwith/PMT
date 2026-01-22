@@ -38,6 +38,9 @@ export default function TasksPage() {
 
   // Derived state for filtering
   const filteredTasks = tasks.filter(task => {
+      // 0. Exclude Deleted (Soft Deletes)
+      if (task.deletedAt) return false;
+
       // 1. Dimension Filter
       if (filters.dimension) {
           const dim = filters.dimension.toLowerCase();
