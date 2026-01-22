@@ -61,10 +61,6 @@
 
   /* React Flow Overrides */
   .react-flow__attribution {
-    @apply !bg-transparent !text-slate-700 !opacity-40 text-[10px];
-  }
-  
-  .react-flow__attribution a {
-    @apply !text-slate-600 hover:!text-slate-500 !no-underline;
+    display: none !important;
   }
 }

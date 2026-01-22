@@ -394,9 +394,7 @@ function BoardPageInner() {
           className="bg-slate-950"
         >
           <Background color="#1e293b" gap={20} />
-          <Controls
-            className="!bg-slate-800/40 !backdrop-blur-xl !border !border-white/5 !shadow-xl !rounded-xl !m-4 [&_button]:!bg-transparent [&_button]:!border-none [&_button]:!text-slate-400 [&_button:hover]:!bg-white/10 [&_button:hover]:!text-white [&_button_svg]:!fill-current"
-          />
+          
           <MiniMap
             style={{ height: 120, width: 160 }}
             zoomable
