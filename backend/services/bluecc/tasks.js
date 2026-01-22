@@ -288,7 +288,8 @@ class TaskService {
                               updates.activities !== undefined ||
                               updates.resources !== undefined ||
                               updates.position !== undefined ||
-                              updates.gridPosition !== undefined;
+                              updates.gridPosition !== undefined ||
+                              updates.deletedAt !== undefined;
 
         if (hasRichUpdates) {
           const currentQuery = `query GetTodo($id: String!) { todo(id: $id) { text } }`;
@@ -309,7 +310,8 @@ class TaskService {
             activities: updates.activities !== undefined ? updates.activities : currentMetadata.activities,
             resources: updates.resources !== undefined ? updates.resources : currentMetadata.resources,
             position: updates.position !== undefined ? updates.position : currentMetadata.position,
-            gridPosition: updates.gridPosition !== undefined ? updates.gridPosition : currentMetadata.gridPosition
+            gridPosition: updates.gridPosition !== undefined ? updates.gridPosition : currentMetadata.gridPosition,
+            deletedAt: updates.deletedAt !== undefined ? updates.deletedAt : currentMetadata.deletedAt
           };
 
           const mergedDescription = updates.description !== undefined ? updates.description : currentDescription;
