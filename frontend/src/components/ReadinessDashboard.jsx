@@ -9,8 +9,8 @@ export default function ReadinessDashboard() {
       const completedTasks = tasks.filter(t => t.status === 'Done');
       const check = (keywords) => {
          return completedTasks.some(t => {
-             const lower = t.title.toLowerCase();
-             return keywords.some(k => lower.includes(k.toLowerCase()));
+             const text = (t.title + ' ' + (t.description || '')).toLowerCase();
+             return keywords.some(k => text.includes(k.toLowerCase()));
          });
       };
 
@@ -18,36 +18,36 @@ export default function ReadinessDashboard() {
          content: {
              label: "Content",
              items: [
-                 { name: "Substack Setup", completed: check(['substack setup', 'create substack', 'setup substack']) },
-                 { name: "Substack Welcome", completed: check(['substack welcome', 'intro post']) },
-                 { name: "Newsletter Platform", completed: check(['newsletter platform', 'select mailer', 'mailing list']) },
-                 { name: "Book Outline", completed: check(['book outline', 'chapter list']) },
-                 { name: "Book Draft", completed: check(['first draft', 'manuscript']) }
+                 { name: "Substack Setup", keywords: ['substack setup', 'create substack'], completed: check(['substack setup', 'create substack', 'setup substack']) },
+                 { name: "Substack Welcome", keywords: ['substack welcome', 'intro post'], completed: check(['substack welcome', 'intro post']) },
+                 { name: "Newsletter Platform", keywords: ['newsletter platform', 'mailing list'], completed: check(['newsletter platform', 'select mailer', 'mailing list']) },
+                 { name: "Book Outline", keywords: ['book outline', 'chapter list'], completed: check(['book outline', 'chapter list']) },
+                 { name: "Book Draft", keywords: ['first draft', 'manuscript'], completed: check(['first draft', 'manuscript']) }
              ]
          },
          practices: {
              label: "Practices",
              items: [
-                 { name: "Stone Concept", completed: check(['stone practice', 'stone concept', 'define stone']) },
-                 { name: "Walk Guide", completed: check(['walking practice', 'walk guide', 'audio guide']) },
-                 { name: "B2B Pitch", completed: check(['b2b pitch', 'pitch deck', 'corporate offer']) }
+                 { name: "Stone Concept", keywords: ['stone practice', 'stone concept'], completed: check(['stone practice', 'stone concept', 'define stone']) },
+                 { name: "Walk Guide", keywords: ['walking practice', 'walk guide'], completed: check(['walking practice', 'walk guide', 'audio guide']) },
+                 { name: "B2B Pitch", keywords: ['b2b pitch', 'corporate offer'], completed: check(['b2b pitch', 'pitch deck', 'corporate offer']) }
              ]
          },
          community: {
              label: "Community",
              items: [
-                 { name: "Mission Statement", completed: check(['mission statement', 'define mission', 'values']) },
-                 { name: "Community Guidelines", completed: check(['guidelines', 'rules', 'code of conduct']) },
-                 { name: "First 30 Plan", completed: check(['first 30', 'onboarding', 'initial cohort']) }
+                 { name: "Mission Statement", keywords: ['mission statement', 'values'], completed: check(['mission statement', 'define mission', 'values']) },
+                 { name: "Community Guidelines", keywords: ['guidelines', 'code of conduct'], completed: check(['guidelines', 'rules', 'code of conduct']) },
+                 { name: "First 30 Plan", keywords: ['first 30', 'onboarding'], completed: check(['first 30', 'onboarding', 'initial cohort']) }
              ]
          },
          marketing: {
              label: "Marketing",
              items: [
-                 { name: "BOPA Strategy", completed: check(['bopa', 'borrowed audience']) },
-                 { name: "Website Domain", completed: check(['domain', 'buy url', 'dns']) },
-                 { name: "Website Launch", completed: check(['launch website', 'publish site', 'mvp']) },
-                 { name: "Social Profiles", completed: check(['social media', 'instagram', 'linkedin', 'twitter']) }
+                 { name: "BOPA Strategy", keywords: ['bopa', 'borrowed audience'], completed: check(['bopa', 'borrowed audience']) },
+                 { name: "Website Domain", keywords: ['domain', 'buy url'], completed: check(['domain', 'buy url', 'dns']) },
+                 { name: "Website Launch", keywords: ['launch website', 'publish site'], completed: check(['launch website', 'publish site', 'mvp']) },
+                 { name: "Social Profiles", keywords: ['social media', 'linkedin'], completed: check(['social media', 'instagram', 'linkedin', 'twitter']) }
              ]
          }
       };
@@ -96,14 +96,20 @@ function ReadinessCard({ title, items, requiredCount }) {
       <div className="space-y-3">
         {items.map((item, i) => (
           <div key={i} className="flex items-center gap-3 text-sm">
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center border ${
-              item.completed 
-                ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' 
-                : 'bg-slate-800 border-slate-700 text-slate-600'
-            }`}>
+            <div 
+              className={`w-5 h-5 rounded-full flex items-center justify-center border ${
+                item.completed 
+                  ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-500' 
+                  : 'bg-slate-800 border-slate-700 text-slate-600'
+              }`}
+              title={`Looking for: ${item.keywords?.join(', ')}`}
+            >
               {item.completed ? <Check size={12} /> : <div className="w-1.5 h-1.5 rounded-full bg-slate-600"></div>}
             </div>
-            <span className={item.completed ? 'text-emerald-400' : 'text-slate-500'}>
+            <span 
+                className={item.completed ? 'text-emerald-400' : 'text-slate-500'}
+                title={`Looking for: ${item.keywords?.join(', ')}`}
+            >
               {item.name}
             </span>
           </div>
