@@ -16,9 +16,11 @@ const STEPS = [
 ];
 
 export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onTaskCreated }) {
-  const { createTask } = useTasks(); // Use unified state
+  const { createTask, updateTask } = useTasks(); // Use unified state
   const [step, setStep] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const isEditMode = !!initialData.id; // Check if we are editing an existing task
 
   // Form State
   const [selectedDimension, setSelectedDimension] = useState(null);
@@ -140,7 +142,7 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
           people
       };
 
-      await createTask({
+      const taskPayload = {
         title,
         description,
         tags: finalTags,
@@ -150,7 +152,13 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
         targetOutcome,
         activities,
         resources
-      });
+      };
+
+      if (isEditMode) {
+          await updateTask(initialData.id, taskPayload);
+      } else {
+          await createTask(taskPayload);
+      }
 
       if (onTaskCreated) onTaskCreated();
       resetForm();
@@ -359,19 +367,12 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="w-full max-w-2xl bg-slate-950 border border-slate-800 rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Step Indicator */}
-        <div className="flex items-center justify-between px-8 py-6 border-b border-white/5 bg-slate-900/50">
-            <div className="flex gap-4">
-                {STEPS.map((s, i) => (
-                    <div key={s.id} className="flex items-center gap-2">
-                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-sm font-bold ${step === s.id ? 'bg-blue-500 text-white' : step > s.id ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'}`}>
-                            {step > s.id ? <ArrowRight size={14}/> : s.id}
-                        </div>
-                        {i < STEPS.length - 1 && <div className={`w-8 h-0.5 ${step > i + 1 ? 'bg-emerald-500' : 'bg-slate-800'}`}></div>}
-                    </div>
-                ))}
-            </div>
-            <button onClick={resetForm}><X className="text-slate-400 hover:text-white" /></button>
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-white/5 bg-slate-900/50">
+          <h3 className="text-lg font-bold text-white">{isEditMode ? 'Edit Project' : 'Create New Project'}</h3>
+          <button onClick={resetForm} className="text-slate-400 hover:text-white transition-colors">
+            <X size={20} />
+          </button>
         </div>
 
         {/* Content */}
@@ -390,7 +391,9 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
             {step < 5 ? (
                 <button onClick={handleNext} disabled={step === 1 && !selectedDimension} className="px-6 py-2 bg-blue-600 text-white rounded-lg font-medium hover:bg-blue-500 disabled:opacity-50">Next Step</button>
             ) : (
-                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 disabled:opacity-50 shadow-lg shadow-emerald-500/20">Create Work</button>
+                <button onClick={handleSubmit} disabled={isSubmitting} className="px-6 py-2 bg-emerald-600 text-white rounded-lg font-medium hover:bg-emerald-500 disabled:opacity-50 shadow-lg shadow-emerald-500/20">
+                    {isEditMode ? 'Save Project' : 'Create Project'}
+                </button>
             )}
         </div>
       </div>
