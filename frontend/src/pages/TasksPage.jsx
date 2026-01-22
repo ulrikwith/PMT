@@ -21,7 +21,7 @@ export default function TasksPage() {
 
   // Update Breadcrumbs
   useEffect(() => {
-    const crumbs = [{ label: 'Tasks', icon: List }];
+    const crumbs = [{ label: 'List', icon: List }];
     
     if (filters.dimension) {
         const config = getDimensionConfig(filters.dimension);
@@ -44,9 +44,8 @@ export default function TasksPage() {
       // 1. Dimension Filter
       if (filters.dimension) {
           const dim = filters.dimension.toLowerCase();
-          // Check explicit dimension field OR tags
-          const hasTag = task.tags && task.tags.some(t => t.toLowerCase().includes(dim));
-          // If we had a specific 'dimension' field on task, check that too
+          // Use exact match instead of includes to avoid false positives
+          const hasTag = task.tags && task.tags.some(t => t.toLowerCase() === dim);
           if (!hasTag) return false;
       }
       
@@ -78,7 +77,7 @@ export default function TasksPage() {
     if (filters.dimension) {
       return `${filters.dimension.charAt(0).toUpperCase() + filters.dimension.slice(1)} Tasks`;
     }
-    return 'All Tasks';
+    return 'List';
   };
 
   return (

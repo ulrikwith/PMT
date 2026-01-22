@@ -87,8 +87,19 @@ export function TasksProvider({ children }) {
   };
 
   const deleteRelationship = async (relationshipId) => {
+    // Snapshot for rollback
+    const previousRelationships = [...relationships];
+
+    // Optimistic delete
     setRelationships(prev => prev.filter(r => r.id !== relationshipId));
-    await api.deleteRelationship(relationshipId);
+
+    try {
+      await api.deleteRelationship(relationshipId);
+    } catch (err) {
+      console.error("Delete relationship failed, rolling back:", err);
+      setRelationships(previousRelationships);
+      throw err;
+    }
   };
 
   const getTaskById = (id) => tasks.find(t => t.id === id);

@@ -15,11 +15,20 @@ class TaskService {
     }
 
     const currentLock = this.mutexes.get(taskId);
-    const nextLock = currentLock.then(() => action()).finally(() => {
-      // Cleanup if this is the last one in the chain (optional optimization)
-    });
-    
-    this.mutexes.set(taskId, nextLock.catch(() => {})); // Catch errors so the chain doesn't break
+    const nextLock = currentLock
+      .then(() => action())
+      .catch((error) => {
+        console.error(`Mutex action failed for task ${taskId}:`, error);
+        throw error; // Re-throw to propagate error to caller
+      })
+      .finally(() => {
+        // Clean up mutex if no other operations are pending
+        if (this.mutexes.get(taskId) === nextLock) {
+          this.mutexes.delete(taskId);
+        }
+      });
+
+    this.mutexes.set(taskId, nextLock);
     return nextLock;
   }
 
@@ -62,6 +71,12 @@ class TaskService {
         return { success: false, error: result.error };
       }
 
+      // Validate response structure
+      if (!result.data || !result.data.todoList || !Array.isArray(result.data.todoList.todos)) {
+        console.error('Invalid API response structure:', result);
+        return { success: false, error: 'Invalid response structure from API' };
+      }
+
       let tasks = result.data.todoList.todos.map(todo => {
         const source = (todo.html && todo.html.includes('---PMT-META---')) ? todo.html : todo.text;
         const { description, metadata } = parseTaskText(source);
@@ -70,21 +85,33 @@ class TaskService {
         let relationships = [];
         let milestones = [];
         
-        if (todo.customFields) {
-          const relField = todo.customFields.find(f => f.name === 'PMT_Relationships');
+        if (todo.customFields && Array.isArray(todo.customFields)) {
+          const relField = todo.customFields.find(f => f && f.name === 'PMT_Relationships');
           if (relField && relField.value) {
             try {
               const parsed = typeof relField.value === 'string' ? JSON.parse(relField.value) : relField.value;
-              if (Array.isArray(parsed)) relationships = parsed;
-            } catch (e) {}
+              if (Array.isArray(parsed)) {
+                relationships = parsed;
+              } else {
+                console.warn(`Task ${todo.id}: PMT_Relationships is not an array, got:`, typeof parsed);
+              }
+            } catch (e) {
+              console.error(`Task ${todo.id}: Failed to parse PMT_Relationships:`, e.message, 'Value:', relField.value);
+            }
           }
 
-          const msField = todo.customFields.find(f => f.name === 'PMT_Milestones');
+          const msField = todo.customFields.find(f => f && f.name === 'PMT_Milestones');
           if (msField && msField.value) {
             try {
               const parsed = typeof msField.value === 'string' ? JSON.parse(msField.value) : msField.value;
-              if (Array.isArray(parsed)) milestones = parsed;
-            } catch (e) {}
+              if (Array.isArray(parsed)) {
+                milestones = parsed;
+              } else {
+                console.warn(`Task ${todo.id}: PMT_Milestones is not an array, got:`, typeof parsed);
+              }
+            } catch (e) {
+              console.error(`Task ${todo.id}: Failed to parse PMT_Milestones:`, e.message, 'Value:', msField.value);
+            }
           }
         }
 

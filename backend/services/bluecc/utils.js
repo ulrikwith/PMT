@@ -29,6 +29,11 @@ export function parseTaskText(text) {
           }
         };
       } catch (e) {
+        console.error('Failed to parse task metadata:', {
+          error: e.message,
+          base64Meta: base64Meta.substring(0, 50) + '...', // Log first 50 chars
+          textPreview: text.substring(0, 100)
+        });
         return { description: text, metadata: {} };
       }
     }
@@ -58,6 +63,16 @@ export function buildTaskText(description, metadata) {
     }
   });
 
-  const base64Meta = Buffer.from(JSON.stringify(compactMeta)).toString('base64');
-  return `${description || ''}\n\n---PMT-META---\n${base64Meta}`;
+  try {
+    const jsonString = JSON.stringify(compactMeta);
+    const base64Meta = Buffer.from(jsonString).toString('base64');
+    return `${description || ''}\n\n---PMT-META---\n${base64Meta}`;
+  } catch (e) {
+    console.error('Failed to serialize task metadata:', {
+      error: e.message,
+      metadata: compactMeta
+    });
+    // Fallback to description only
+    return description || '';
+  }
 }

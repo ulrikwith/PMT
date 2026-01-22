@@ -1,9 +1,24 @@
 import taskService from './tasks.js';
+import crypto from 'crypto';
 
 class RelationshipService {
+  /**
+   * Generate a cryptographically secure unique relationship ID
+   */
+  generateRelationshipId() {
+    const timestamp = Date.now().toString(36);
+    const randomBytes = crypto.randomBytes(8).toString('hex');
+    return `rel-${timestamp}-${randomBytes}`;
+  }
+
   async createTaskRelationship(fromTaskId, toTaskId, type, label = null) {
     try {
-      const relId = `rel-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      // Validate inputs
+      if (!fromTaskId || !toTaskId || !type) {
+        return { success: false, error: 'Missing required fields: fromTaskId, toTaskId, or type' };
+      }
+
+      const relId = this.generateRelationshipId();
       const newRel = {
         id: relId,
         fromTaskId,

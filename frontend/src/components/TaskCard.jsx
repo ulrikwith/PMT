@@ -77,11 +77,6 @@ export default function TaskCard({ task, onUpdate, onDelete }) {
              <h3 className="text-lg font-semibold text-white group-hover:text-blue-400 transition-colors">
                 {task.title}
              </h3>
-             {task.workType === 'part-of-element' && (
-               <span className="px-2 py-0.5 bg-blue-500/10 text-blue-400 text-[10px] font-bold rounded-md uppercase tracking-wider border border-blue-500/20">
-                 Work-Product
-               </span>
-             )}
           </div>
          
           <p className="text-slate-400 text-sm leading-relaxed mb-3">

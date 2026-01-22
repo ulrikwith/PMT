@@ -117,7 +117,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
       <div className="p-6 border-b border-white/5 flex items-center justify-between">
         <div>
           <h2 className="text-xl font-bold text-white">
-            {node.data.status === 'empty' ? 'Define Work' : 'Edit Work'}
+            {node.data.status === 'empty' ? 'Define Project' : 'Edit Project'}
           </h2>
           <p className="text-sm text-slate-400 mt-1">Step {step} of 4</p>
         </div>
@@ -156,7 +156,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
           <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Work Name *
+                Project Name *
               </label>
               <input
                 type="text"
@@ -177,7 +177,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                 onChange={(e) => setWorkData({ ...workData, description: e.target.value })}
                 className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all resize-none"
                 rows={3}
-                placeholder="What is this Work about?"
+                placeholder="What is this Project about?"
               />
             </div>
 
@@ -449,12 +449,12 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
         {/* STEP 4: Review */}
         {step === 4 && (
           <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
-            <h3 className="text-lg font-semibold text-white">Review Work</h3>
+            <h3 className="text-lg font-semibold text-white">Review Project</h3>
 
             <div className="glass-panel rounded-xl p-5 space-y-4">
               <div>
                 <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
-                  Work Name
+                  Project Name
                 </div>
                 <div className="text-white font-semibold">{workData.label || 'Untitled'}</div>
               </div>
@@ -488,7 +488,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
               <p className="text-sm text-blue-400">
-                Clicking "Save" will update the Work node on the canvas and create {workData.activities.length} activity child nodes.
+                Clicking "Save" will update the Project node on the canvas and create {workData.activities.length} activity child nodes.
               </p>
             </div>
           </div>
@@ -520,7 +520,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
             onClick={handleSave}
             className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all"
           >
-            Save Work ✓
+            Save Project ✓
           </button>
         )}
       </div>

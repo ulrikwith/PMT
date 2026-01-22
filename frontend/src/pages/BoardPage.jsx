@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef, useMemo } from 'react';
 import ReactFlow, {
   Background,
   Controls,
@@ -152,7 +152,7 @@ function BoardPageInner() {
     const config = getDimensionConfig(activeDimension);
     if (config) {
       setBreadcrumbs([
-        { label: 'Board', icon: LayoutGrid },
+        { label: 'Projects', icon: LayoutGrid },
         { label: config.label, icon: config.icon, color: config.color }
       ]);
     }
@@ -175,21 +175,27 @@ function BoardPageInner() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, []);
 
-  // Sync Nodes with Tasks - Fixed cell positions
-  useEffect(() => {
-    if (loading) return;
+  // Memoize filtered and sorted tasks to avoid recomputation
+  const dimensionTasks = useMemo(() => {
+    if (loading) return [];
 
-    // Filter tasks for current dimension and sort by creation date (oldest first)
-    const dimensionTasks = tasks
+    return tasks
       .filter(t => {
         if (!activeDimension) return true;
         return t.tags && t.tags.some(tag => tag.toLowerCase() === activeDimension.toLowerCase());
       })
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
+  }, [tasks, activeDimension, loading]);
+
+  // Memoize dimension IDs to avoid recreation
+  const dimensionIds = useMemo(() => DIMENSIONS.map(d => d.id), []);
+
+  // Sync Nodes with Tasks - Fixed cell positions
+  useEffect(() => {
+    if (loading || dimensionTasks.length === 0 && tasks.length > 0) return;
 
     const loadedNodes = [];
     const loadedEdges = [];
-    const dimensionIds = DIMENSIONS.map(d => d.id);
 
     // Map Tasks to Nodes with FIXED cell positions (based on index)
     dimensionTasks.forEach((task, cellIndex) => {
@@ -243,7 +249,7 @@ function BoardPageInner() {
             setWizardOpen(true);
           },
           onDelete: () => {
-            if (window.confirm('Are you sure you want to delete this work?')) {
+            if (window.confirm('Are you sure you want to delete this project?')) {
               deleteTask(task.id);
             }
           }
@@ -283,7 +289,7 @@ function BoardPageInner() {
       }, 100);
     }
 
-  }, [tasks, relationships, activeDimension, loading, expandedNodes, toggleExpand, deleteTask, jumpToWork, setNodes, setEdges, setCenter]);
+  }, [dimensionTasks, relationships, loading, expandedNodes, toggleExpand, deleteTask, jumpToWork, setNodes, setEdges, setCenter, tasks, dimensionIds]);
 
   // Reset center flag when dimension changes
   useEffect(() => {
@@ -359,11 +365,14 @@ function BoardPageInner() {
       } else {
         await updateTask(selectedNode.id, taskPayload);
       }
+      // Only close on success
+      setWizardOpen(false);
     } catch (e) {
-      console.error("Save failed", e);
+      console.error("Save failed:", e);
+      // Show error to user (could add toast notification here)
+      alert(`Failed to save project: ${e.message || 'Unknown error'}. Please try again.`);
+      // Keep wizard open so user can retry
     }
-
-    setWizardOpen(false);
   };
 
   return (
@@ -422,16 +431,16 @@ function BoardPageInner() {
               <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
                 <Book className="text-blue-500" size={32} />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Welcome to your {getDimensionConfig(activeDimension)?.label} Board</h2>
+              <h2 className="text-2xl font-bold text-white mb-3">Welcome to your {getDimensionConfig(activeDimension)?.label} Projects</h2>
               <p className="text-slate-400 mb-8 leading-relaxed">
-                Create <strong>Work-Products</strong>—meaningful outcomes you want to produce. Each Work occupies a fixed cell in the grid.
+                Create <strong>Projects</strong>—meaningful outcomes you want to produce. Each Project occupies a fixed cell in the grid.
               </p>
               <button
                 onClick={addNewWork}
                 className="w-full py-3 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-bold rounded-xl shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center justify-center gap-2"
               >
                 <Plus size={20} />
-                Create Your First Work
+                Create Your First Project
               </button>
               <div className="mt-4 text-xs text-slate-500">
                 <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">1-5</kbd> Switch Boards

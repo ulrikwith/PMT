@@ -76,7 +76,7 @@ function WorkNode({ data, selected }) {
           <div className="flex-1 min-w-0">
             {isEmpty ? (
               <div className="text-slate-500 text-sm py-2 text-center italic">
-                New Work (Click to Define)
+                New Project (Click to Define)
               </div>
             ) : (
               <>
@@ -202,7 +202,7 @@ function WorkNode({ data, selected }) {
                       data.onEdit?.();
                     }}
                     className="p-1.5 hover:bg-blue-500/20 hover:text-blue-400 text-slate-500 rounded transition-colors"
-                    title="Edit Work"
+                    title="Edit Project"
                    >
                       <Edit2 size={14} />
                    </button>
@@ -212,7 +212,7 @@ function WorkNode({ data, selected }) {
                       data.onDelete?.();
                     }}
                     className="p-1.5 hover:bg-red-500/20 hover:text-red-400 text-slate-500 rounded transition-colors"
-                    title="Delete Work"
+                    title="Delete Project"
                    >
                       <Trash2 size={14} />
                    </button>
