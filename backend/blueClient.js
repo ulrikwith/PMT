@@ -948,6 +948,14 @@ class BlueClient {
       }
     `;
     const result = await this.query(mutation, { input: { todoId: taskId } });
+    
+    if (result.success) {
+      // Update local cache immediately to prevent Safety Net from restoring it
+      this.localTasks = this.localTasks.filter(t => t.id !== taskId);
+      await this.saveLocalStore();
+      console.log(`✓ Deleted task ${taskId} from cloud and local cache`);
+    }
+
     return result;
   }
 
