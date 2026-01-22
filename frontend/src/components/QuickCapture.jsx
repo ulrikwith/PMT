@@ -36,7 +36,7 @@ export default function QuickCapture() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50 hidden">
+    <div className="fixed bottom-6 right-6 z-50">
       {isOpen ? (
         <div className="glass-panel rounded-2xl p-6 w-96 shadow-2xl border-blue-500/20 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
@@ -77,10 +77,10 @@ export default function QuickCapture() {
       ) : (
         <button 
           onClick={() => setIsOpen(true)}
-          className="px-6 py-4 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-full shadow-2xl shadow-emerald-500/40 hover:shadow-emerald-500/60 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group"
+          className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group border border-white/10"
         >
-          <Lightbulb size={20} className="group-hover:animate-pulse" />
-          Quick Add
+          <Lightbulb size={24} className="text-yellow-300 group-hover:text-yellow-200 transition-colors" />
+          <span className="tracking-wide">Capture Idea</span>
         </button>
       )}
     </div>
