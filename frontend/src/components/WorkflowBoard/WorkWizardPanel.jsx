@@ -1,75 +1,115 @@
 import React, { useState, useEffect } from 'react';
 import { X, Plus, Trash2, Clock, Wrench, Users, BookOpen } from 'lucide-react';
-
-// Reuse elements structure or import shared constants
-const ELEMENTS = {
-  content: ['Books', 'Substack', 'Newsletter', 'Stone', 'Other'],
-  practice: ['Walk', 'Stone', 'B2B', 'Other'],
-  community: ['BOPA', 'Website', 'Other'],
-  marketing: ['First 30', 'Planning', 'Other'],
-  admin: ['Accounting', 'Development', 'Mission', 'Other'],
-};
+import { DIMENSIONS, getDimensionConfig } from '../../constants/taxonomy';
+import { useTasks } from '../../context/TasksContext';
 
 export default function WorkWizardPanel({ node, onClose, onSave }) {
   // If node is null, don't render (handled by parent conditional usually)
   if (!node) return null;
 
+  const { allTools } = useTasks();
   const [step, setStep] = useState(1);
+  const [newTool, setNewTool] = useState(''); // Controlled input for new tool
   const [workData, setWorkData] = useState({
     label: node.data.label !== 'New Work' ? node.data.label : '',
     description: node.data.description || '',
-    element: node.data.element || '',
+    element: '', // Will be set in useEffect
     dimension: node.data.dimension || '',
     workType: node.data.workType || 'part-of-element',
     targetOutcome: node.data.targetOutcome || '',
-    startDate: node.data.startDate || '',
-    targetCompletion: node.data.targetCompletion || '',
+    startDate: '', // Will be set in useEffect
+    targetCompletion: '', // Will be set in useEffect
     activities: node.data.activities || [],
-    resources: node.data.resources || {
-      timeEstimate: '',
-      energyLevel: 'focused',
-      tools: [],
-      materials: '',
-      people: [],
-      notes: '',
+    resources: {
+      timeEstimate: node.data.resources?.timeEstimate || '',
+      energyLevel: node.data.resources?.energyLevel || 'focused',
+      tools: node.data.resources?.tools || [],
+      materials: node.data.resources?.materials || '',
+      people: node.data.resources?.people || [],
+      notes: node.data.resources?.notes || '',
     },
   });
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '';
+    try {
+        return new Date(dateStr).toISOString().split('T')[0];
+    } catch (e) { return ''; }
+  };
 
   // Reset state when node changes
   useEffect(() => {
       setStep(1);
+      setNewTool(''); // Reset tool input
+      
+      // Case-insensitive element matching
+      const dimConfig = getDimensionConfig(node.data.dimension);
+      const dimElements = dimConfig ? dimConfig.elements.map(e => e.label) : []; // Use labels for matching/display
+      
+      const rawElement = node.data.element || '';
+      // Try to find matching label case-insensitively
+      const matchedElement = dimElements.find(e => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
+
       setWorkData({
         label: node.data.label !== 'New Work' ? node.data.label : '',
         description: node.data.description || '',
-        element: node.data.element || '',
+        element: matchedElement,
         dimension: node.data.dimension || '',
         workType: node.data.workType || 'part-of-element',
         targetOutcome: node.data.targetOutcome || '',
-        startDate: node.data.startDate || '',
-        targetCompletion: node.data.targetCompletion || '',
+        startDate: formatDate(node.data.startDate),
+        targetCompletion: formatDate(node.data.targetCompletion || node.data.dueDate), // Handle both potential field names
         activities: node.data.activities || [],
-        resources: node.data.resources || {
-          timeEstimate: '',
-          energyLevel: 'focused',
-          tools: [],
-          materials: '',
-          people: [],
-          notes: '',
+        resources: {
+          timeEstimate: node.data.resources?.timeEstimate || '',
+          energyLevel: node.data.resources?.energyLevel || 'focused',
+          tools: node.data.resources?.tools || [],
+          materials: node.data.resources?.materials || '',
+          people: node.data.resources?.people || [],
+          notes: node.data.resources?.notes || '',
         },
       });
-  }, [node.id]);
+  }, [node.id, node.data]);
+
+  // Sync Total Hours when activities change
+  useEffect(() => {
+    const total = workData.activities.reduce((sum, act) => sum + (parseFloat(act.timeEstimate) || 0), 0);
+    if (parseFloat(workData.resources.timeEstimate) !== total) {
+      setWorkData(prev => ({
+        ...prev,
+        resources: { ...prev.resources, timeEstimate: total.toString() }
+      }));
+    }
+  }, [workData.activities]);
 
   const handleSave = () => {
+    // Check for pending tool input
+    let finalTools = [...workData.resources.tools];
+    if (newTool.trim() && !finalTools.includes(newTool.trim())) {
+        finalTools.push(newTool.trim());
+    }
+
     // If saving 'New Work' with no name, default it
     const finalLabel = workData.label.trim() || 'New Work';
+    
     onSave({
         ...workData,
         label: finalLabel,
-        status: finalLabel !== 'New Work' ? 'in-progress' : 'empty' // Simple status update logic
+        status: finalLabel !== 'New Work' ? 'in-progress' : 'empty',
+        resources: {
+            ...workData.resources,
+            tools: finalTools
+        }
     });
   };
 
-  const getElements = (dim) => ELEMENTS[dim] || [];
+  const getElements = (dimId) => {
+      const config = getDimensionConfig(dimId);
+      return config ? config.elements.map(e => e.label) : [];
+  };
+
+  // Filter out tools already selected
+  const suggestedTools = allTools.filter(t => !workData.resources.tools.includes(t));
 
   return (
     <div className="absolute top-0 right-0 w-[480px] h-full glass-panel border-l border-white/5 shadow-2xl transform translate-x-0 transition-transform duration-300 flex flex-col z-20 bg-slate-950/90 backdrop-blur-md">
@@ -294,20 +334,17 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-2">
-                    Total Hours
+                    Total Hours (Auto-calculated)
                   </label>
-                  <input
-                    type="number"
-                    value={workData.resources.timeEstimate}
-                    onChange={(e) =>
-                      setWorkData({
-                        ...workData,
-                        resources: { ...workData.resources, timeEstimate: e.target.value },
-                      })
-                    }
-                    className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:outline-none"
-                    placeholder="20"
-                  />
+                  <div className="relative">
+                    <input
+                      type="number"
+                      value={workData.resources.timeEstimate}
+                      readOnly
+                      className="w-full px-3 py-2 bg-slate-900/40 border border-white/5 rounded-lg text-slate-400 focus:outline-none cursor-not-allowed font-semibold"
+                    />
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">h</div>
+                  </div>
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-slate-400 mb-2">
@@ -338,6 +375,31 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                 <Wrench className="text-purple-500" size={20} />
                 <h4 className="text-sm font-semibold text-white">Tools & Software</h4>
               </div>
+              
+              {/* Suggested Tools */}
+              {suggestedTools.length > 0 && (
+                  <div className="mb-3">
+                      <div className="text-[10px] text-slate-500 uppercase font-bold mb-2">Suggested</div>
+                      <div className="flex flex-wrap gap-2">
+                          {suggestedTools.map(t => (
+                              <button
+                                  key={t}
+                                  onClick={() => setWorkData({
+                                      ...workData,
+                                      resources: {
+                                          ...workData.resources,
+                                          tools: [...workData.resources.tools, t]
+                                      }
+                                  })}
+                                  className="px-2 py-1 bg-slate-800 border border-slate-700 hover:border-purple-500/50 hover:text-purple-400 rounded text-xs text-slate-400 transition-colors"
+                              >
+                                  + {t}
+                              </button>
+                          ))}
+                      </div>
+                  </div>
+              )}
+
               <div className="space-y-3">
                 <div className="flex flex-wrap gap-2">
                   {workData.resources.tools?.map((tool, index) => (
@@ -362,16 +424,18 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                 </div>
                 <input
                   type="text"
+                  value={newTool}
+                  onChange={(e) => setNewTool(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && e.target.value.trim()) {
+                    if (e.key === 'Enter' && newTool.trim()) {
                       setWorkData({
                         ...workData,
                         resources: {
                           ...workData.resources,
-                          tools: [...(workData.resources.tools || []), e.target.value.trim()],
+                          tools: [...(workData.resources.tools || []), newTool.trim()],
                         },
                       });
-                      e.target.value = '';
+                      setNewTool('');
                     }
                   }}
                   className="w-full px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-white placeholder-slate-500 focus:border-purple-500/50 focus:outline-none"

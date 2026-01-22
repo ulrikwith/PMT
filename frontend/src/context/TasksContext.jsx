@@ -10,7 +10,7 @@ export function TasksProvider({ children }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Initial Load
+  // Initial load
   useEffect(() => {
     refreshData();
   }, []);
@@ -35,82 +35,55 @@ export function TasksProvider({ children }) {
     }
   }, []);
 
-  // CRUD Operations
   const createTask = async (taskData) => {
-    try {
-      const response = await api.createTask(taskData);
-      const newTask = response.data || response;
-      // Optimistic / Immediate Update
-      setTasks(prev => [...prev, newTask]);
-      return newTask;
-    } catch (err) {
-      console.error("Create task failed:", err);
-      throw err;
-    }
+    const newTask = await api.createTask(taskData);
+    setTasks(prev => [...prev, newTask]);
+    return newTask;
   };
 
   const updateTask = async (taskId, updates) => {
-    try {
-      // Optimistic Update (optional, but good for UI responsiveness)
-      setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
-      
-      const response = await api.updateTask(taskId, updates);
-      const updatedTask = response.data || response;
-      
-      // Confirm with Server Data
-      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-      return updatedTask;
-    } catch (err) {
-      console.error("Update task failed:", err);
-      // Revert on failure? For now, we rely on refreshData or user retry
-      throw err;
-    }
+    // Optimistic update for immediate UI feedback
+    setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
+
+    const updatedTask = await api.updateTask(taskId, updates);
+
+    // Confirm with server data
+    setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+    return updatedTask;
   };
 
   const deleteTask = async (taskId) => {
-    try {
-      setTasks(prev => prev.filter(t => t.id !== taskId));
-      // Also remove relationships involving this task
-      setRelationships(prev => prev.filter(r => r.fromTaskId !== taskId && r.toTaskId !== taskId));
-      await api.deleteTask(taskId);
-    } catch (err) {
-      console.error("Delete task failed:", err);
-      // Re-fetch to restore if failed
-      refreshData();
-      throw err;
-    }
+    // Optimistic delete
+    setTasks(prev => prev.filter(t => t.id !== taskId));
+    setRelationships(prev => prev.filter(r => r.fromTaskId !== taskId && r.toTaskId !== taskId));
+
+    await api.deleteTask(taskId);
   };
 
   const createRelationship = async (fromTaskId, toTaskId, type) => {
-    try {
-      const response = await api.createRelationship({ fromTaskId, toTaskId, type });
-      const newRel = response.data || response;
-      setRelationships(prev => [...prev, newRel]);
-      return newRel;
-    } catch (err) {
-      console.error("Create relationship failed:", err);
-      throw err;
-    }
+    const newRel = await api.createRelationship({ fromTaskId, toTaskId, type });
+    setRelationships(prev => [...prev, newRel]);
+    return newRel;
   };
 
   const deleteRelationship = async (relationshipId) => {
-    try {
-      setRelationships(prev => prev.filter(r => r.id !== relationshipId));
-      await api.deleteRelationship(relationshipId);
-    } catch (err) {
-      console.error("Delete relationship failed:", err);
-      refreshData();
-      throw err;
-    }
+    setRelationships(prev => prev.filter(r => r.id !== relationshipId));
+    await api.deleteRelationship(relationshipId);
   };
 
   const getTaskById = (id) => tasks.find(t => t.id === id);
+
+  // Derived state: Aggregate all unique tools from tasks
+  const allTools = [...new Set(
+    tasks.flatMap(t => t.resources?.tools || [])
+  )].sort();
 
   return (
     <TasksContext.Provider value={{
       tasks,
       tags,
       relationships,
+      allTools,
       loading,
       error,
       refreshData,

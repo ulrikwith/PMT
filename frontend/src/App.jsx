@@ -8,6 +8,7 @@ const TasksPage = lazy(() => import('./pages/TasksPage'));
 const TimelinePage = lazy(() => import('./pages/TimelinePage'));
 const ReadinessPage = lazy(() => import('./pages/ReadinessPage'));
 const BoardPage = lazy(() => import('./pages/BoardPage'));
+const TrashPage = lazy(() => import('./pages/TrashPage'));
 
 function LoadingSpinner() {
     return (
@@ -28,6 +29,7 @@ function App() {
               <Route path="timeline" element={<TimelinePage />} />
               <Route path="readiness" element={<ReadinessPage />} />
               <Route path="board" element={<BoardPage />} />
+              <Route path="trash" element={<TrashPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
           </Routes>

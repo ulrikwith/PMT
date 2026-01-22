@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
-import { List, Calendar, Target, ChevronDown, ChevronRight, LayoutDashboard } from 'lucide-react';
+import { List, Calendar, Target, ChevronRight, LayoutDashboard, Trash2 } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
 import { useCreateTask } from '../context/CreateTaskContext';
 
@@ -126,6 +126,10 @@ export default function Sidebar() {
     { to: "/readiness", icon: Target, label: "Readiness" },
   ];
 
+  const bottomNavItems = [
+    { to: "/trash", icon: Trash2, label: "Trash" },
+  ];
+
   const getColorClasses = (color, isActive) => {
     const colors = {
       blue: isActive ? 'text-blue-500 bg-blue-500/10' : 'hover:text-blue-500 hover:bg-blue-500/10',
@@ -236,6 +240,26 @@ export default function Sidebar() {
             </div>
           );
         })}
+      </div>
+
+      {/* Bottom section - Trash */}
+      <div className="mt-auto pt-4 border-t border-white/5">
+        {bottomNavItems.map((item) => (
+          <NavLink
+            key={item.to}
+            to={item.to}
+            className={({ isActive }) =>
+              `w-full flex items-center gap-3 px-4 py-2 rounded-lg transition-all text-sm ${
+                isActive
+                  ? "text-slate-300 bg-slate-800/60"
+                  : "text-slate-500 hover:text-slate-400 hover:bg-slate-800/40"
+              }`
+            }
+          >
+            <item.icon size={16} />
+            <span>{item.label}</span>
+          </NavLink>
+        ))}
       </div>
     </aside>
   );

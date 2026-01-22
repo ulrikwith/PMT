@@ -4,15 +4,8 @@ import TaskList from '../components/TaskList';
 import FilterBar from '../components/FilterBar';
 import { useTasks } from '../context/TasksContext';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
-import { List, Book, User, Users, Megaphone, Settings } from 'lucide-react';
-
-const DIMENSION_CONFIG = {
-  content: { label: 'Content', icon: Book, color: 'blue' },
-  practice: { label: 'Practices', icon: User, color: 'emerald' },
-  community: { label: 'Community', icon: Users, color: 'pink' },
-  marketing: { label: 'Marketing', icon: Megaphone, color: 'amber' },
-  admin: { label: 'Admin', icon: Settings, color: 'purple' },
-};
+import { List } from 'lucide-react';
+import { getDimensionConfig } from '../constants/taxonomy';
 
 export default function TasksPage() {
   const { tasks, loading, error, createTask, updateTask, deleteTask, refreshData } = useTasks();
@@ -31,7 +24,7 @@ export default function TasksPage() {
     const crumbs = [{ label: 'Tasks', icon: List }];
     
     if (filters.dimension) {
-        const config = DIMENSION_CONFIG[filters.dimension.toLowerCase()];
+        const config = getDimensionConfig(filters.dimension);
         if (config) {
             crumbs.push({ label: config.label, icon: config.icon, color: config.color });
         } else {

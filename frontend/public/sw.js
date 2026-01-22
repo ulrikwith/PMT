@@ -1,63 +1,60 @@
-// sw.js - Service Worker for Offline Support
-const CACHE_NAME = 'pmt-cache-v1';
-const URLS_TO_CACHE = [
+// Service Worker - Static asset caching only
+// API calls go directly to the server (no caching)
+
+const CACHE_NAME = 'pmt-cache-v2';
+const STATIC_ASSETS = [
   '/',
   '/index.html',
   '/manifest.json'
-  // Vite assets will be cached dynamically
 ];
 
+// Install: cache static assets
 self.addEventListener('install', (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      console.log('Opened cache');
-      return cache.addAll(URLS_TO_CACHE);
+      return cache.addAll(STATIC_ASSETS);
     })
+  );
+  self.skipWaiting();
+});
+
+// Fetch: Network-first for everything, cache static assets on success
+self.addEventListener('fetch', (event) => {
+  // Skip API calls - let them go directly to the network
+  if (event.request.url.includes('/api/')) {
+    return;
+  }
+
+  // For static assets: try network first, fallback to cache
+  event.respondWith(
+    fetch(event.request)
+      .then((response) => {
+        // Cache successful responses for static assets
+        if (response.ok && response.type === 'basic') {
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
+        return response;
+      })
+      .catch(() => {
+        // Fallback to cache if network fails
+        return caches.match(event.request);
+      })
   );
 });
 
-self.addEventListener('fetch', (event) => {
-  // Simple cache-first strategy for static assets, network-first for API
-  if (event.request.url.includes('/api/')) {
-    event.respondWith(
-      fetch(event.request).catch(() => {
-        // Fallback for API calls if offline could return cached JSON if implemented
-        // For now, let the frontend handle the error via ErrorBoundary or try/catch
-        return new Response(JSON.stringify({ error: 'Offline' }), {
-          headers: { 'Content-Type': 'application/json' }
-        });
-      })
-    );
-  } else {
-    event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request).then((response) => {
-            // Cache new requests dynamically
-            if(!response || response.status !== 200 || response.type !== 'basic') {
-              return response;
-            }
-            const responseToCache = response.clone();
-            caches.open(CACHE_NAME).then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-            return response;
-        });
-      })
-    );
-  }
-});
-
+// Activate: clean up old caches
 self.addEventListener('activate', (event) => {
-  const cacheWhitelist = [CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
-        cacheNames.map((cacheName) => {
-          if (cacheWhitelist.indexOf(cacheName) === -1) {
-            return caches.delete(cacheName);
-          }
-        })
+        cacheNames
+          .filter((name) => name !== CACHE_NAME)
+          .map((name) => caches.delete(name))
       );
     })
   );
+  self.clients.claim();
 });

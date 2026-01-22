@@ -1,13 +1,5 @@
 import React from 'react';
-import { Book, User, Users, Megaphone, Settings } from 'lucide-react';
-
-const DIMENSIONS = [
-  { id: 'content', label: 'Content', icon: Book, color: 'blue' },
-  { id: 'practice', label: 'Practices', icon: User, color: 'emerald' },
-  { id: 'community', label: 'Community', icon: Users, color: 'pink' },
-  { id: 'marketing', label: 'Marketing', icon: Megaphone, color: 'amber' },
-  { id: 'admin', label: 'Admin', icon: Settings, color: 'purple' },
-];
+import { DIMENSIONS } from '../../constants/taxonomy';
 
 export default function DimensionTabs({ activeDimension, onDimensionChange }) {
   return (

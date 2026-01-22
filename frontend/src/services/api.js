@@ -25,8 +25,33 @@ const api = {
     return response.data;
   },
 
-  deleteTask: async (taskId) => {
-    const response = await axios.delete(`${API_BASE_URL}/tasks/${taskId}`);
+  deleteTask: async (taskId, permanent = false) => {
+    const response = await axios.delete(`${API_BASE_URL}/tasks/${taskId}`, {
+      params: permanent ? { permanent: 'true' } : {}
+    });
+    return response.data;
+  },
+
+  // Trash
+  getTrash: async () => {
+    const response = await axios.get(`${API_BASE_URL}/trash`);
+    return response.data;
+  },
+
+  restoreTask: async (taskId) => {
+    const response = await axios.post(`${API_BASE_URL}/trash/${taskId}/restore`);
+    return response.data;
+  },
+
+  emptyTrash: async (olderThanDays = null) => {
+    const response = await axios.delete(`${API_BASE_URL}/trash`, {
+      params: olderThanDays ? { olderThanDays } : {}
+    });
+    return response.data;
+  },
+
+  permanentlyDeleteTask: async (taskId) => {
+    const response = await axios.delete(`${API_BASE_URL}/trash/${taskId}`);
     return response.data;
   },
 

@@ -35,6 +35,11 @@ PMT is a personal project management tool with Blue.cc cloud sync integration. A
 - ✅ Relationships stored as structured comments
 - ✅ Data recovery from cloud verified
 
+### Data Persistence Architecture (Important!)
+- **Source of Truth**: The `html` field in Blue.cc.
+- **Why**: Blue.cc processes HTML-to-Text conversion asynchronously. Reading `text` immediately after a write can result in stale data.
+- **Solution**: The backend now prioritizes parsing the `html` field (stripping tags) to retrieve metadata. This guarantees that `getTasks` always reflects the latest writes, solving the "reverting data" issue on refresh.
+
 ### Documentation
 - ✅ Clean, organized structure
 - ✅ Comprehensive setup guides

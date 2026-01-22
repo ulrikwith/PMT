@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import TagSelector from './TagSelector';
 import { useTasks } from '../context/TasksContext';
+import { DIMENSIONS } from '../constants/taxonomy';
 
 const STEPS = [
   { id: 1, title: 'Placement', icon: Layers },
@@ -12,59 +13,6 @@ const STEPS = [
   { id: 3, title: 'Activities', icon: Tag }, // Using Tag icon for activities/tasks list for now
   { id: 4, title: 'Resources', icon: Wrench },
   { id: 5, title: 'Connect', icon: Link2 }
-];
-
-const DIMENSIONS_STRUCTURE = [
-  {
-    id: 'content',
-    label: 'Content',
-    color: 'blue',
-    children: [
-      { id: 'substack', label: 'Substack' },
-      { id: 'newsletter', label: 'Newsletter' },
-      { id: 'books', label: 'Books' }
-    ]
-  },
-  {
-    id: 'practice',
-    label: 'Practices',
-    color: 'emerald',
-    children: [
-      { id: 'stone', label: 'Stone' },
-      { id: 'walk', label: 'Walk' },
-      { id: 'b2b', label: 'B2B' }
-    ]
-  },
-  {
-    id: 'community',
-    label: 'Community',
-    color: 'pink',
-    children: [
-      { id: 'mission', label: 'Mission' },
-      { id: 'development', label: 'Development' },
-      { id: 'first30', label: 'First 30' }
-    ]
-  },
-  {
-    id: 'marketing',
-    label: 'Marketing',
-    color: 'amber',
-    children: [
-      { id: 'bopa', label: 'BOPA' },
-      { id: 'website', label: 'Website' },
-      { id: 'marketing-other', label: 'Other' }
-    ]
-  },
-  {
-    id: 'admin',
-    label: 'Admin',
-    color: 'purple',
-    children: [
-      { id: 'planning', label: 'Planning' },
-      { id: 'accounting', label: 'Accounting' },
-      { id: 'admin-other', label: 'Other' }
-    ]
-  }
 ];
 
 export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onTaskCreated }) {
@@ -112,14 +60,15 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
           let foundEl = null;
 
           // Find first matching dimension/element
-          for (const dim of DIMENSIONS_STRUCTURE) {
+          for (const dim of DIMENSIONS) {
               if (tags.includes(dim.id)) {
                   foundDim = dim.id;
               }
-              for (const child of dim.children) {
-                  if (tags.includes(child.id)) {
+              for (const child of dim.elements) {
+                  // Check against ID or Label (case insensitive)
+                  if (tags.some(t => t.toLowerCase() === child.id.toLowerCase() || t.toLowerCase() === child.label.toLowerCase())) {
                       foundDim = dim.id;
-                      foundEl = child.id;
+                      foundEl = child.label; // Use label for state
                   }
               }
               if (foundDim) break;
@@ -224,7 +173,7 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
       <div>
           <label className="block text-sm font-medium text-slate-300 mb-3">Dimension</label>
           <div className="grid grid-cols-5 gap-3">
-            {DIMENSIONS_STRUCTURE.map(dim => (
+            {DIMENSIONS.map(dim => (
               <button
                 key={dim.id}
                 onClick={() => { setSelectedDimension(dim.id); setSelectedElement(null); }}
@@ -248,12 +197,12 @@ export default function CreateTaskModal({ isOpen, onClose, initialData = {}, onT
         <div className="animate-in fade-in slide-in-from-top-2">
             <label className="block text-sm font-medium text-slate-300 mb-3">Element</label>
             <div className="grid grid-cols-3 gap-3">
-                {DIMENSIONS_STRUCTURE.find(d => d.id === selectedDimension)?.children.map(sub => (
+                {DIMENSIONS.find(d => d.id === selectedDimension)?.elements.map(sub => (
                     <button
                         key={sub.id}
-                        onClick={() => setSelectedElement(sub.id)}
+                        onClick={() => setSelectedElement(sub.label)} // Use label as value
                         className={`p-3 rounded-lg border transition-all text-left ${
-                            selectedElement === sub.id
+                            selectedElement === sub.label
                                 ? 'border-blue-500 bg-blue-500/10 text-white'
                                 : 'border-slate-700 bg-slate-800/40 text-slate-400 hover:border-slate-500'
                         }`}
