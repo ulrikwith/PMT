@@ -1,0 +1,10 @@
+# Blue.cc API Credentials
+BLUE_TOKEN_ID=c894f0a83c044946ba3aeea988ca0146
+BLUE_SECRET_ID=pat_906c7b7ca8bc45f6be97d4a65dc2ea77
+
+# Blue.cc Resources (Anchored for stability)
+BLUE_PROJECT_ID=cmklpzm7k152gp71ee0lm6bwa
+BLUE_TODO_LIST_ID=cmklqbb0z13yjnd1e4pjokze9
+
+# Server Configuration
+PORT=3001

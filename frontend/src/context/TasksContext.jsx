@@ -42,22 +42,42 @@ export function TasksProvider({ children }) {
   };
 
   const updateTask = async (taskId, updates) => {
+    // Snapshot current state for rollback
+    const previousTasks = [...tasks];
+    
     // Optimistic update for immediate UI feedback
     setTasks(prev => prev.map(t => t.id === taskId ? { ...t, ...updates } : t));
 
-    const updatedTask = await api.updateTask(taskId, updates);
-
-    // Confirm with server data
-    setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
-    return updatedTask;
+    try {
+      const updatedTask = await api.updateTask(taskId, updates);
+      // Confirm with server data
+      setTasks(prev => prev.map(t => t.id === taskId ? updatedTask : t));
+      return updatedTask;
+    } catch (err) {
+      console.error("Update failed, rolling back:", err);
+      setTasks(previousTasks);
+      // Ideally show a toast here
+      throw err;
+    }
   };
 
   const deleteTask = async (taskId) => {
+    // Snapshot
+    const previousTasks = [...tasks];
+    const previousRelationships = [...relationships];
+
     // Optimistic delete
     setTasks(prev => prev.filter(t => t.id !== taskId));
     setRelationships(prev => prev.filter(r => r.fromTaskId !== taskId && r.toTaskId !== taskId));
 
-    await api.deleteTask(taskId);
+    try {
+      await api.deleteTask(taskId);
+    } catch (err) {
+      console.error("Delete failed, rolling back:", err);
+      setTasks(previousTasks);
+      setRelationships(previousRelationships);
+      throw err;
+    }
   };
 
   const createRelationship = async (fromTaskId, toTaskId, type) => {

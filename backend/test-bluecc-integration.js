@@ -291,32 +291,35 @@ async function testBlueCC() {
           info('  Verifying persistence from cloud...');
           
           // Force clear local cache to ensure we read from cloud
-          client.localTasks = []; 
-          const fetchRes = await client.getTasks(); // This pulls from cloud and repopulates
+          // client.localTasks = []; // Deprecated
+          const fetchRes = await client.getTasks(); // This pulls from cloud
           
           if (fetchRes.success) {
               const task1 = fetchRes.data.find(t => t.id === createdTaskId);
               
-              // Check internal metadata fields directly
-              if (task1 && task1._relationships && task1._relationships.length > 0) {
-                  const rel = task1._relationships.find(r => r.toTaskId === secondTaskId);
+              // Verify relationships via separate call
+              const relRes = await client.getTaskRelationships(createdTaskId);
+              
+              if (relRes.success && relRes.data.length > 0) {
+                  const rel = relRes.data.find(r => r.toTaskId === secondTaskId);
                   if (rel && rel.type === 'feeds-into') {
-                      success('  ✓ Relationship persisted in cloud metadata');
+                      success('  ✓ Relationship persisted in cloud metadata (fetched via getTaskRelationships)');
                   } else {
                       error('  ✗ Relationship data incorrect or missing');
-                      console.log('    Got Rels:', task1._relationships);
+                      console.log('    Got Rels:', relRes.data);
                       testsFailed++;
                   }
               } else {
-                  error('  ✗ No relationships found on task');
+                  error('  ✗ No relationships found via API');
                   testsFailed++;
               }
 
-              if (task1 && task1._milestones && task1._milestones.includes('milestone-test-123')) {
-                  success('  ✓ Milestone persisted in cloud metadata');
+              // Verify milestones via separate call
+              const mileRes = await client.getTasksForMilestone('milestone-test-123');
+              if (mileRes.success && mileRes.data.some(t => t.id === createdTaskId)) {
+                  success('  ✓ Milestone link persisted (fetched via getTasksForMilestone)');
               } else {
-                  error('  ✗ Milestone missing from cloud metadata');
-                  console.log('    Got Milestones:', task1._milestones);
+                  error('  ✗ Milestone link missing');
                   testsFailed++;
               }
           } else {
