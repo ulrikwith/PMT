@@ -9,10 +9,13 @@
     "dev": "nodemon --ignore tasks.json server.js"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "bcryptjs": "^3.0.3",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
-    "graphql-request": "^6.1.0"
+    "express": "^4.18.2",
+    "google-auth-library": "^10.5.0",
+    "graphql-request": "^6.1.0",
+    "jsonwebtoken": "^9.0.3"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"

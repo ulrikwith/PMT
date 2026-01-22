@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import blueClient from './blueClient.js';
 import { LAUNCH_PHASES } from './launchData.js';
+import authRoutes, { authenticateToken } from './routes/auth.js';
 
 dotenv.config();
 
@@ -12,6 +13,16 @@ const PORT = process.env.PORT || 3001;
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// Auth Routes
+app.use('/api/auth', authRoutes);
+
+// Protected Routes Middleware (Apply to task operations)
+// For now, let's keep GET public but protect mutations if desired.
+// Or apply globally except health/auth.
+// app.use('/api/tasks', authenticateToken); 
+// Currently disabled to avoid breaking frontend dev flow immediately.
+// Uncomment above line to enforce auth.
 
 // Request logging
 app.use((req, res, next) => {

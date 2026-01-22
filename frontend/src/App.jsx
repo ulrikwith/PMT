@@ -2,6 +2,8 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import LoginPage from './pages/LoginPage';
 
 // Lazy load pages
 const TasksPage = lazy(() => import('./pages/TasksPage'));
@@ -19,13 +21,22 @@ function LoadingSpinner() {
     );
 }
 
-function App() {
-  return (
-    <ErrorBoundary>
-      <BrowserRouter>
-        <Suspense fallback={<LoadingSpinner />}>
-          <Routes>
-            <Route path="/" element={<Layout />}>
+function ProtectedRoute({ children }) {
+    const { user, loading } = useAuth();
+    if (loading) return <LoadingSpinner />;
+    if (!user) return <Navigate to="/login" replace />;
+    return children;
+}
+
+function AppRoutes() {
+    return (
+        <Routes>
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/" element={
+                <ProtectedRoute>
+                    <Layout />
+                </ProtectedRoute>
+            }>
               <Route index element={<TasksPage />} />
               <Route path="timeline" element={<TimelinePage />} />
               <Route path="readiness" element={<ReadinessPage />} />
@@ -34,9 +45,20 @@ function App() {
               <Route path="trash" element={<TrashPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Route>
-          </Routes>
-        </Suspense>
-      </BrowserRouter>
+        </Routes>
+    );
+}
+
+function App() {
+  return (
+    <ErrorBoundary>
+      <AuthProvider>
+        <BrowserRouter>
+            <Suspense fallback={<LoadingSpinner />}>
+                <AppRoutes />
+            </Suspense>
+        </BrowserRouter>
+      </AuthProvider>
     </ErrorBoundary>
   );
 }
