@@ -2,7 +2,7 @@ import React from 'react';
 import { Search, X } from 'lucide-react';
 
 export default function FilterBar({ filters, onFilterChange }) {
-  const hasActiveFilters = filters.dimension || filters.status || filters.search;
+  const hasActiveFilters = filters.dimension || filters.status || filters.energy || filters.search;
 
   return (
     <div className="glass-panel rounded-xl p-4 mb-6">
@@ -20,11 +20,11 @@ export default function FilterBar({ filters, onFilterChange }) {
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex flex-wrap gap-3 w-full md:w-auto justify-end">
           <select
             value={filters.dimension || ''}
             onChange={(e) => onFilterChange({ ...filters, dimension: e.target.value })}
-            className="flex-1 md:w-40 px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all cursor-pointer appearance-none"
+            className="flex-1 md:flex-none md:w-40 px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all cursor-pointer appearance-none"
           >
             <option value="">All Dimensions</option>
             
@@ -73,6 +73,18 @@ export default function FilterBar({ filters, onFilterChange }) {
             <option value="In Progress">In Progress</option>
             <option value="Done">Done</option>
             <option value="Paused">Paused</option>
+          </select>
+
+          <select
+            value={filters.energy || ''}
+            onChange={(e) => onFilterChange({ ...filters, energy: e.target.value })}
+            className="flex-1 md:flex-none md:w-36 px-3 py-2 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all cursor-pointer appearance-none"
+          >
+            <option value="">All Energy</option>
+            <option value="Deep work">Deep Work</option>
+            <option value="Focused work">Focused Work</option>
+            <option value="Light work">Light Work</option>
+            <option value="Admin">Admin</option>
           </select>
 
            {hasActiveFilters && (

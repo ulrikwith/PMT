@@ -16,6 +16,7 @@ export default function TasksPage() {
   const filters = {
     dimension: searchParams.get('dimension') || '',
     status: searchParams.get('status') || '',
+    energy: searchParams.get('energy') || '',
     search: searchParams.get('search') || '',
   };
 
@@ -54,7 +55,13 @@ export default function TasksPage() {
           return false;
       }
 
-      // 3. Search
+      // 3. Energy Filter
+      if (filters.energy) {
+          const taskEnergy = task.resources?.energyLevel?.toLowerCase() || '';
+          if (taskEnergy !== filters.energy.toLowerCase()) return false;
+      }
+
+      // 4. Search
       if (filters.search) {
           const q = filters.search.toLowerCase();
           const matchTitle = task.title.toLowerCase().includes(q);
@@ -69,6 +76,7 @@ export default function TasksPage() {
     const params = new URLSearchParams();
     if (newFilters.dimension) params.set('dimension', newFilters.dimension);
     if (newFilters.status) params.set('status', newFilters.status);
+    if (newFilters.energy) params.set('energy', newFilters.energy);
     if (newFilters.search) params.set('search', newFilters.search);
     setSearchParams(params);
   };
