@@ -72,19 +72,27 @@ export default function Sidebar() {
 
   // Recalculate counts whenever tasks change
   useEffect(() => {
-    const counts = { total: tasks.length };
+    // Filter out deleted tasks for counts (TasksContext provides all tasks including soft-deleted ones until filtered by page)
+    // Actually, TasksContext provides pre-filtered tasks based on 'includeDeleted' flag default false in backend.
+    // However, TrashPage requests deleted tasks separately.
+    // If TasksContext 'tasks' array contains deleted items, we should filter them here.
+    // Looking at backend task.js, getTasks filters out deleted by default.
+    // Let's assume 'tasks' here are active tasks.
+    const activeTasks = tasks.filter(t => !t.deletedAt);
+    
+    const counts = { total: activeTasks.length };
 
     // Calculate counts for each dimension node
     DIMENSIONS_STRUCTURE.forEach(parent => {
         // Parent count: matches any of its tags
-        const parentCount = tasks.filter(t =>
+        const parentCount = activeTasks.filter(t =>
             t.tags?.some(tag => parent.tags.includes(tag.toLowerCase()))
         ).length;
         counts[parent.id] = parentCount;
 
           // Children counts
           parent.children.forEach(child => {
-              const childCount = tasks.filter(t =>
+              const childCount = activeTasks.filter(t =>
                   t.tags?.some(tag => tag.toLowerCase() === child.id)
               ).length;
               counts[child.id] = childCount;
@@ -120,8 +128,8 @@ export default function Sidebar() {
   };
 
   const navItems = [
-    { to: "/", icon: List, label: "All Tasks", count: taskCounts.total },
-    { to: "/board", icon: LayoutDashboard, label: "Board" },
+    { to: "/board", icon: LayoutDashboard, label: "Create Project" },
+    { to: "/", icon: List, label: "Project List", count: taskCounts.total },
     { to: "/timeline", icon: Calendar, label: "Timeline" },
     { to: "/readiness", icon: Target, label: "Readiness" },
   ];
