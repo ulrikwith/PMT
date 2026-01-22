@@ -58,4 +58,13 @@
   .dimension-tag-infrastructure {
     @apply bg-purple-500/10 text-purple-500 border border-purple-500/20 shadow-[0_0_10px_rgba(139,92,246,0.05)];
   }
+
+  /* React Flow Overrides */
+  .react-flow__attribution {
+    @apply !bg-transparent !text-slate-700 !opacity-40 text-[10px];
+  }
+  
+  .react-flow__attribution a {
+    @apply !text-slate-600 hover:!text-slate-500 !no-underline;
+  }
 }

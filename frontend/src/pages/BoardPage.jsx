@@ -395,16 +395,14 @@ function BoardPageInner() {
         >
           <Background color="#1e293b" gap={20} />
           <Controls
-            style={{
-              backgroundColor: 'rgba(15, 23, 42, 0.9)',
-              border: '1px solid rgba(255, 255, 255, 0.1)',
-              borderRadius: '0.5rem',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5)',
-            }}
-            className="[&_button]:!bg-slate-900/90 [&_button]:!border-b [&_button]:!border-white/10 [&_button_svg]:!fill-slate-400 [&_button:hover]:!bg-slate-800 [&_button:hover_svg]:!fill-slate-300"
+            className="!bg-slate-800/40 !backdrop-blur-xl !border !border-white/5 !shadow-xl !rounded-xl !m-4 [&_button]:!bg-transparent [&_button]:!border-none [&_button]:!text-slate-400 [&_button:hover]:!bg-white/10 [&_button:hover]:!text-white [&_button_svg]:!fill-current"
           />
           <MiniMap
-            className="bg-slate-900/60 border border-white/10 rounded-lg"
+            style={{ height: 120, width: 160 }}
+            zoomable
+            pannable
+            maskColor="rgba(2, 6, 23, 0.7)"
+            className="!bg-slate-800/40 !backdrop-blur-xl !border !border-white/5 !shadow-xl !rounded-xl !m-4"
             nodeColor={(node) => node.type === 'work' ? '#3B82F6' : '#64748B'}
           />
 
