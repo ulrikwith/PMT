@@ -390,12 +390,27 @@ function BoardPageInner() {
   }, [activeDimension, setNodes, tasks, expandedNodes]);
 
   const handleWizardSave = async (updatedData) => {
+    // Calculate overall project dates from activities
+    let minStart = null;
+    let maxEnd = null;
+
+    if (updatedData.activities && updatedData.activities.length > 0) {
+      updatedData.activities.forEach((act) => {
+        if (act.startDate) {
+          if (!minStart || act.startDate < minStart) minStart = act.startDate;
+        }
+        if (act.endDate) {
+          if (!maxEnd || act.endDate > maxEnd) maxEnd = act.endDate;
+        }
+      });
+    }
+
     const taskPayload = {
       title: updatedData.label,
       description: updatedData.description,
       tags: [activeDimension, updatedData.element].filter(Boolean),
-      dueDate: updatedData.targetCompletion,
-      startDate: updatedData.startDate,
+      dueDate: maxEnd || updatedData.targetCompletion,
+      startDate: minStart || updatedData.startDate,
       workType: updatedData.workType,
       targetOutcome: updatedData.targetOutcome,
       activities: updatedData.activities,

@@ -3,42 +3,20 @@
 @import 'tailwindcss';
 
 @layer base {
-  html,
-  body,
-  #root {
-    height: 100%;
-    margin: 0;
-    font-size: 14px;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-    background-color: #0b1120;
-  }
-
-  body {
-    @apply text-slate-200 transition-colors duration-300 leading-relaxed;
-    font-family:
-      'Inter',
-      -apple-system,
-      BlinkMacSystemFont,
-      sans-serif;
-  }
-
-  body::selection {
-    background-color: rgba(59, 130, 246, 0.3);
-  }
-
-  h1,
-  h2,
-  h3 {
-    @apply font-bold tracking-tight text-white;
-  }
-
-  input:focus,
-  textarea:focus,
-  select:focus {
-    @apply ring-2 ring-blue-500/20 border-blue-500/50 outline-none;
-  }
+  /* ... existing base styles if any ... */
 }
+
+/* Custom Date Input Styling */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+/* Hide the default placeholder "dd/mm/yyyy" in Chrome when not focused */
+input[type="date"]:not(:focus):not(.has-value)::-webkit-datetime-edit {
+  color: transparent;
+}
+
 
 @layer components {
   .glass-panel {
