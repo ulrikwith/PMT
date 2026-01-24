@@ -3,7 +3,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import LoginPage from './pages/LoginPage';
+// import LoginPage from './pages/LoginPage'; // 🚧 DISABLED - uncomment when auth is needed
 
 // Lazy load pages
 const TasksPage = lazy(() => import('./pages/TasksPage'));
@@ -14,39 +14,44 @@ const TrashPage = lazy(() => import('./pages/TrashPage'));
 const ReviewPage = lazy(() => import('./pages/ReviewPage'));
 
 function LoadingSpinner() {
-    return (
-        <div className="flex items-center justify-center min-h-screen text-slate-500">
-            <div className="animate-pulse">Loading...</div>
-        </div>
-    );
+  return (
+    <div className="flex items-center justify-center min-h-screen text-slate-500">
+      <div className="animate-pulse">Loading...</div>
+    </div>
+  );
 }
 
+// 🚧 BYPASS: Authentication disabled - routes are now public
+// Uncomment the checks below when authentication is needed
 function ProtectedRoute({ children }) {
-    const { user, loading } = useAuth();
-    if (loading) return <LoadingSpinner />;
-    if (!user) return <Navigate to="/login" replace />;
-    return children;
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  // if (!user) return <Navigate to="/login" replace />;
+  return children;
 }
 
 function AppRoutes() {
-    return (
-        <Routes>
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/" element={
-                <ProtectedRoute>
-                    <Layout />
-                </ProtectedRoute>
-            }>
-              <Route index element={<TasksPage />} />
-              <Route path="timeline" element={<TimelinePage />} />
-              <Route path="readiness" element={<ReadinessPage />} />
-              <Route path="board" element={<BoardPage />} />
-              <Route path="review" element={<ReviewPage />} />
-              <Route path="trash" element={<TrashPage />} />
-              <Route path="*" element={<Navigate to="/" replace />} />
-            </Route>
-        </Routes>
-    );
+  return (
+    <Routes>
+      {/* <Route path="/login" element={<LoginPage />} /> */} {/* 🚧 DISABLED */}
+      <Route
+        path="/"
+        element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }
+      >
+        <Route index element={<TasksPage />} />
+        <Route path="timeline" element={<TimelinePage />} />
+        <Route path="readiness" element={<ReadinessPage />} />
+        <Route path="board" element={<BoardPage />} />
+        <Route path="review" element={<ReviewPage />} />
+        <Route path="trash" element={<TrashPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
+  );
 }
 
 function App() {
@@ -54,9 +59,9 @@ function App() {
     <ErrorBoundary>
       <AuthProvider>
         <BrowserRouter>
-            <Suspense fallback={<LoadingSpinner />}>
-                <AppRoutes />
-            </Suspense>
+          <Suspense fallback={<LoadingSpinner />}>
+            <AppRoutes />
+          </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </ErrorBoundary>

@@ -13,11 +13,11 @@ function LayoutContent() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { isOpen, initialData, closeCreateTask } = useCreateTask();
   const navigate = useNavigate();
-  
-  useKeyboardShortcuts(() => setShowShortcuts(prev => !prev));
+
+  useKeyboardShortcuts(() => setShowShortcuts((prev) => !prev));
 
   const handleTaskCreated = () => {
-      window.dispatchEvent(new Event('task-created')); 
+    window.dispatchEvent(new Event('task-created'));
   };
 
   return (
@@ -31,10 +31,10 @@ function LayoutContent() {
         <QuickCapture />
       </div>
       <ShortcutsModal isOpen={showShortcuts} onClose={() => setShowShortcuts(false)} />
-      <CreateTaskModal 
-        isOpen={isOpen} 
-        onClose={closeCreateTask} 
-        initialData={initialData} 
+      <CreateTaskModal
+        isOpen={isOpen}
+        onClose={closeCreateTask}
+        initialData={initialData}
         onTaskCreated={handleTaskCreated}
       />
     </div>
@@ -42,9 +42,9 @@ function LayoutContent() {
 }
 
 export default function Layout() {
-    return (
-        <CreateTaskProvider>
-            <LayoutContent />
-        </CreateTaskProvider>
-    );
+  return (
+    <CreateTaskProvider>
+      <LayoutContent />
+    </CreateTaskProvider>
+  );
 }

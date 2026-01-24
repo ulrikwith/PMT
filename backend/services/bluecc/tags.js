@@ -19,7 +19,7 @@ export const DIMENSION_TAGS = {
   ADMIN: { name: 'admin', color: '#8B5CF6' },
   PLANNING: { name: 'planning', color: '#8B5CF6' },
   ACCOUNTING: { name: 'accounting', color: '#A78BFA' },
-  ADMIN_OTHER: { name: 'admin-other', color: '#C4B5FD' }
+  ADMIN_OTHER: { name: 'admin-other', color: '#C4B5FD' },
 };
 
 class TagService {
@@ -43,11 +43,11 @@ class TagService {
 
       return {
         success: true,
-        data: result.data.tags.map(t => ({
+        data: result.data.tags.map((t) => ({
           name: t.title,
           color: t.color,
-          id: t.id
-        }))
+          id: t.id,
+        })),
       };
     } catch (error) {
       return { success: true, data: Object.values(DIMENSION_TAGS) };
@@ -67,7 +67,7 @@ class TagService {
       `;
 
       const result = await coreClient.query(mutation, {
-        input: { title: name, color: color || '#888888' }
+        input: { title: name, color: color || '#888888' },
       });
 
       if (!result.success) {
@@ -79,8 +79,8 @@ class TagService {
         data: {
           id: result.data.createTag.id,
           name: result.data.createTag.title,
-          color: result.data.createTag.color
-        }
+          color: result.data.createTag.color,
+        },
       };
     } catch (error) {
       return { success: false, error: error.message };
@@ -93,14 +93,14 @@ class TagService {
       let tagId = null;
 
       if (tagsResult.success) {
-        const existingTag = tagsResult.data.find(t => t.name === tagName);
+        const existingTag = tagsResult.data.find((t) => t.name === tagName);
         if (existingTag) {
           tagId = existingTag.id;
         }
       }
 
       if (!tagId) {
-        const dimensionTag = Object.values(DIMENSION_TAGS).find(t => t.name === tagName);
+        const dimensionTag = Object.values(DIMENSION_TAGS).find((t) => t.name === tagName);
         const color = dimensionTag ? dimensionTag.color : '#888888';
 
         const createResult = await this.createTag(tagName, color);
@@ -113,10 +113,10 @@ class TagService {
 
       const todoQuery = `query GetTodoTags($id: String!) { todo(id: $id) { tags { id } } }`;
       const todoResult = await coreClient.query(todoQuery, { id: taskId });
-      
+
       let currentTagIds = [];
       if (todoResult.success && todoResult.data.todo && todoResult.data.todo.tags) {
-        currentTagIds = todoResult.data.todo.tags.map(t => t.id);
+        currentTagIds = todoResult.data.todo.tags.map((t) => t.id);
       }
 
       if (currentTagIds.includes(tagId)) {
@@ -130,7 +130,7 @@ class TagService {
       `;
 
       const result = await coreClient.query(mutation, {
-        input: { todoId: taskId, tagIds: [...currentTagIds, tagId] }
+        input: { todoId: taskId, tagIds: [...currentTagIds, tagId] },
       });
 
       return result;

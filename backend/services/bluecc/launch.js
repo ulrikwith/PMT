@@ -7,7 +7,7 @@ class LaunchService {
       const tasksRes = await taskService.getTasks();
       if (!tasksRes.success) return { success: false, error: tasksRes.error };
 
-      const task = tasksRes.data.find(t => t.id === taskId);
+      const task = tasksRes.data.find((t) => t.id === taskId);
       if (!task) return { success: false, error: 'Task not found' };
 
       // 2. Add milestone if not exists
@@ -23,13 +23,13 @@ class LaunchService {
       const updateRes = await taskService.updateTask(taskId, { milestones: updatedMilestones });
       if (!updateRes.success) return { success: false, error: updateRes.error };
 
-      return { 
-        success: true, 
-        data: { 
-          taskId, 
-          milestoneId, 
-          createdAt: new Date().toISOString() 
-        } 
+      return {
+        success: true,
+        data: {
+          taskId,
+          milestoneId,
+          createdAt: new Date().toISOString(),
+        },
       };
     } catch (error) {
       return { success: false, error: error.message };
@@ -44,7 +44,7 @@ class LaunchService {
       }
 
       const tasks = tasksResult.data;
-      const linkedTasks = tasks.filter(t => t.milestones && t.milestones.includes(milestoneId));
+      const linkedTasks = tasks.filter((t) => t.milestones && t.milestones.includes(milestoneId));
 
       return { success: true, data: linkedTasks };
     } catch (error) {
@@ -63,7 +63,7 @@ class LaunchService {
       return { success: true, data: { progress: 0, total: 0, completed: 0 } };
     }
 
-    const completed = tasks.filter(t => t.status === 'Done').length;
+    const completed = tasks.filter((t) => t.status === 'Done').length;
     const progress = Math.round((completed / tasks.length) * 100);
 
     return { success: true, data: { progress, total: tasks.length, completed } };
@@ -72,51 +72,72 @@ class LaunchService {
   async calculateReadiness() {
     const tasksResult = await taskService.getTasks();
     const tasks = tasksResult.success ? tasksResult.data : [];
-    const completedTasks = tasks.filter(t => t.status === 'Done');
+    const completedTasks = tasks.filter((t) => t.status === 'Done');
 
     const check = (keywords) => {
-      return completedTasks.some(t => {
+      return completedTasks.some((t) => {
         const lower = t.title.toLowerCase();
-        return keywords.some(k => lower.includes(k.toLowerCase()));
+        return keywords.some((k) => lower.includes(k.toLowerCase()));
       });
     };
 
     const readinessData = {
       content: {
-        label: "Content",
+        label: 'Content',
         items: [
-          { name: "Substack Setup", completed: check(['substack setup', 'create substack', 'setup substack']) },
-          { name: "Substack Welcome", completed: check(['substack welcome', 'intro post']) },
-          { name: "Newsletter Platform", completed: check(['newsletter platform', 'select mailer', 'mailing list']) },
-          { name: "Book Outline", completed: check(['book outline', 'chapter list']) },
-          { name: "Book Draft", completed: check(['first draft', 'manuscript']) }
-        ]
+          {
+            name: 'Substack Setup',
+            completed: check(['substack setup', 'create substack', 'setup substack']),
+          },
+          { name: 'Substack Welcome', completed: check(['substack welcome', 'intro post']) },
+          {
+            name: 'Newsletter Platform',
+            completed: check(['newsletter platform', 'select mailer', 'mailing list']),
+          },
+          { name: 'Book Outline', completed: check(['book outline', 'chapter list']) },
+          { name: 'Book Draft', completed: check(['first draft', 'manuscript']) },
+        ],
       },
       practices: {
-        label: "Practices",
+        label: 'Practices',
         items: [
-          { name: "Stone Concept", completed: check(['stone practice', 'stone concept', 'define stone']) },
-          { name: "Walk Guide", completed: check(['walking practice', 'walk guide', 'audio guide']) },
-          { name: "B2B Pitch", completed: check(['b2b pitch', 'pitch deck', 'corporate offer']) }
-        ]
+          {
+            name: 'Stone Concept',
+            completed: check(['stone practice', 'stone concept', 'define stone']),
+          },
+          {
+            name: 'Walk Guide',
+            completed: check(['walking practice', 'walk guide', 'audio guide']),
+          },
+          { name: 'B2B Pitch', completed: check(['b2b pitch', 'pitch deck', 'corporate offer']) },
+        ],
       },
       community: {
-        label: "Community",
+        label: 'Community',
         items: [
-          { name: "Mission Statement", completed: check(['mission statement', 'define mission', 'values']) },
-          { name: "Community Guidelines", completed: check(['guidelines', 'rules', 'code of conduct']) },
-          { name: "First 30 Plan", completed: check(['first 30', 'onboarding', 'initial cohort']) }
-        ]
+          {
+            name: 'Mission Statement',
+            completed: check(['mission statement', 'define mission', 'values']),
+          },
+          {
+            name: 'Community Guidelines',
+            completed: check(['guidelines', 'rules', 'code of conduct']),
+          },
+          { name: 'First 30 Plan', completed: check(['first 30', 'onboarding', 'initial cohort']) },
+        ],
       },
       marketing: {
-        label: "Marketing",
+        label: 'Marketing',
         items: [
-          { name: "BOPA Strategy", completed: check(['bopa', 'borrowed audience']) },
-          { name: "Website Domain", completed: check(['domain', 'buy url', 'dns']) },
-          { name: "Website Launch", completed: check(['launch website', 'publish site', 'mvp']) },
-          { name: "Social Profiles", completed: check(['social media', 'instagram', 'linkedin', 'twitter']) }
-        ]
-      }
+          { name: 'BOPA Strategy', completed: check(['bopa', 'borrowed audience']) },
+          { name: 'Website Domain', completed: check(['domain', 'buy url', 'dns']) },
+          { name: 'Website Launch', completed: check(['launch website', 'publish site', 'mvp']) },
+          {
+            name: 'Social Profiles',
+            completed: check(['social media', 'instagram', 'linkedin', 'twitter']),
+          },
+        ],
+      },
     };
 
     return { success: true, data: readinessData };

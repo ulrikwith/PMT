@@ -5,7 +5,7 @@ import { Check, Circle, Clock } from 'lucide-react';
 function ActivityNode({ data, selected }) {
   const isDone = data.status === 'done';
   const isInProgress = data.status === 'in-progress';
-  
+
   return (
     <div
       className={`
@@ -40,15 +40,15 @@ function ActivityNode({ data, selected }) {
             </div>
           )}
         </div>
-        
+
         <div className="flex-1 min-w-0">
-          <p className={`text-sm font-medium truncate ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}>
+          <p
+            className={`text-sm font-medium truncate ${isDone ? 'text-slate-500 line-through' : 'text-slate-200'}`}
+          >
             {data.label}
           </p>
           {data.timeEstimate && (
-            <p className="text-xs text-slate-500 mt-0.5">
-              {data.timeEstimate}h
-            </p>
+            <p className="text-xs text-slate-500 mt-0.5">{data.timeEstimate}h</p>
           )}
         </div>
       </div>

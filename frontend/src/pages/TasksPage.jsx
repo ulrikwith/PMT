@@ -23,14 +23,14 @@ export default function TasksPage() {
   // Update Breadcrumbs
   useEffect(() => {
     const crumbs = [{ label: 'List', icon: List }];
-    
+
     if (filters.dimension) {
-        const config = getDimensionConfig(filters.dimension);
-        if (config) {
-            crumbs.push({ label: config.label, icon: config.icon, color: config.color });
-        } else {
-            crumbs.push({ label: filters.dimension });
-        }
+      const config = getDimensionConfig(filters.dimension);
+      if (config) {
+        crumbs.push({ label: config.label, icon: config.icon, color: config.color });
+      } else {
+        crumbs.push({ label: filters.dimension });
+      }
     }
 
     setBreadcrumbs(crumbs);
@@ -38,38 +38,38 @@ export default function TasksPage() {
   }, [filters.dimension, setBreadcrumbs]);
 
   // Derived state for filtering
-  const filteredTasks = tasks.filter(task => {
-      // 0. Exclude Deleted (Soft Deletes)
-      if (task.deletedAt) return false;
+  const filteredTasks = tasks.filter((task) => {
+    // 0. Exclude Deleted (Soft Deletes)
+    if (task.deletedAt) return false;
 
-      // 1. Dimension Filter
-      if (filters.dimension) {
-          const dim = filters.dimension.toLowerCase();
-          // Use exact match instead of includes to avoid false positives
-          const hasTag = task.tags && task.tags.some(t => t.toLowerCase() === dim);
-          if (!hasTag) return false;
-      }
-      
-      // 2. Status Filter
-      if (filters.status && task.status !== filters.status) {
-          return false;
-      }
+    // 1. Dimension Filter
+    if (filters.dimension) {
+      const dim = filters.dimension.toLowerCase();
+      // Use exact match instead of includes to avoid false positives
+      const hasTag = task.tags && task.tags.some((t) => t.toLowerCase() === dim);
+      if (!hasTag) return false;
+    }
 
-      // 3. Energy Filter
-      if (filters.energy) {
-          const taskEnergy = task.resources?.energyLevel?.toLowerCase() || '';
-          if (taskEnergy !== filters.energy.toLowerCase()) return false;
-      }
+    // 2. Status Filter
+    if (filters.status && task.status !== filters.status) {
+      return false;
+    }
 
-      // 4. Search
-      if (filters.search) {
-          const q = filters.search.toLowerCase();
-          const matchTitle = task.title.toLowerCase().includes(q);
-          const matchDesc = (task.description || '').toLowerCase().includes(q);
-          if (!matchTitle && !matchDesc) return false;
-      }
+    // 3. Energy Filter
+    if (filters.energy) {
+      const taskEnergy = task.resources?.energyLevel?.toLowerCase() || '';
+      if (taskEnergy !== filters.energy.toLowerCase()) return false;
+    }
 
-      return true;
+    // 4. Search
+    if (filters.search) {
+      const q = filters.search.toLowerCase();
+      const matchTitle = task.title.toLowerCase().includes(q);
+      const matchDesc = (task.description || '').toLowerCase().includes(q);
+      if (!matchTitle && !matchDesc) return false;
+    }
+
+    return true;
   });
 
   const handleFilterChange = (newFilters) => {
@@ -92,15 +92,13 @@ export default function TasksPage() {
     <div>
       <div className="mb-6 flex justify-between items-end">
         <div>
-            <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
-            {getPageTitle()}
-            </h2>
-            <p className="text-slate-400">
+          <h2 className="text-3xl font-bold text-white tracking-tight mb-2">{getPageTitle()}</h2>
+          <p className="text-slate-400">
             Managing {filteredTasks.length} task{filteredTasks.length !== 1 ? 's' : ''}
-            </p>
+          </p>
         </div>
         <button onClick={refreshData} className="text-xs text-slate-500 hover:text-white underline">
-            Refresh
+          Refresh
         </button>
       </div>
 

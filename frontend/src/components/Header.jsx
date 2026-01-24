@@ -3,6 +3,7 @@ import { Search, Flower, Cloud, HardDrive, Download, ChevronRight } from 'lucide
 import api from '../services/api';
 import NotificationsMenu from './NotificationsMenu';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
+import { getBreadcrumbClasses } from '../utils/colors';
 
 export default function Header() {
   const [connectionMode, setConnectionMode] = useState('loading');
@@ -22,9 +23,9 @@ export default function Header() {
   };
 
   const handleExport = () => {
-      if (window.confirm('Download full project export (JSON)?')) {
-          api.exportData();
-      }
+    if (window.confirm('Download full project export (JSON)?')) {
+      api.exportData();
+    }
   };
 
   const isCloud = connectionMode === 'cloud';
@@ -50,7 +51,9 @@ export default function Header() {
                 const Icon = crumb.icon;
                 return (
                   <React.Fragment key={idx}>
-                    <div className={`flex items-center gap-2 px-2 py-1 rounded-md transition-all ${crumb.color ? `bg-${crumb.color}-500/10 text-${crumb.color}-400` : 'text-slate-400'}`}>
+                    <div
+                      className={`flex items-center gap-2 px-2 py-1 rounded-md transition-all ${getBreadcrumbClasses(crumb.color)}`}
+                    >
                       {Icon && <Icon size={14} />}
                       <span className="font-medium whitespace-nowrap">{crumb.label}</span>
                     </div>
@@ -65,32 +68,42 @@ export default function Header() {
 
           {/* Connection Status */}
           {connectionMode !== 'loading' && breadcrumbs.length === 0 && (
-            <div className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
-              isCloud
-                ? 'bg-emerald-500/10 border-emerald-500/20'
-                : isOffline
-                  ? 'bg-red-500/10 border-red-500/20'
-                  : 'bg-amber-500/10 border-amber-500/20'
-            }`}>
-              <div className={`w-2 h-2 rounded-full animate-pulse ${
-                isCloud ? 'bg-emerald-500' : isOffline ? 'bg-red-500' : 'bg-amber-500'
-              }`}></div>
-              {isCloud ? <Cloud size={14} className="text-emerald-500" /> : <HardDrive size={14} className={isOffline ? 'text-red-500' : 'text-amber-500'} />}
-              <span className={`text-xs font-medium ${
-                isCloud ? 'text-emerald-500' : isOffline ? 'text-red-500' : 'text-amber-500'
-              }`}>
+            <div
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full border ${
+                isCloud
+                  ? 'bg-emerald-500/10 border-emerald-500/20'
+                  : isOffline
+                    ? 'bg-red-500/10 border-red-500/20'
+                    : 'bg-amber-500/10 border-amber-500/20'
+              }`}
+            >
+              <div
+                className={`w-2 h-2 rounded-full animate-pulse ${
+                  isCloud ? 'bg-emerald-500' : isOffline ? 'bg-red-500' : 'bg-amber-500'
+                }`}
+              ></div>
+              {isCloud ? (
+                <Cloud size={14} className="text-emerald-500" />
+              ) : (
+                <HardDrive size={14} className={isOffline ? 'text-red-500' : 'text-amber-500'} />
+              )}
+              <span
+                className={`text-xs font-medium ${
+                  isCloud ? 'text-emerald-500' : isOffline ? 'text-red-500' : 'text-amber-500'
+                }`}
+              >
                 {isCloud ? 'Cloud Synced' : isOffline ? 'Offline' : 'Local Mode'}
               </span>
             </div>
           )}
         </div>
-        
+
         <div className="flex items-center gap-3">
           {/* Notifications */}
           <NotificationsMenu />
 
           {/* Export */}
-          <button 
+          <button
             onClick={handleExport}
             className="px-3 py-2 rounded-lg bg-slate-800/60 border border-white/10 text-slate-400 hover:text-white hover:border-blue-500/50 transition-all flex items-center gap-2"
             title="Export Data"
@@ -102,7 +115,7 @@ export default function Header() {
           <button className="px-4 py-2 rounded-lg bg-slate-800/60 border border-white/10 text-slate-400 hover:text-white hover:border-blue-500/50 transition-all">
             <Search size={16} />
           </button>
-          
+
           {/* User Menu */}
           <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-slate-800/60 border border-white/10">
             <div className="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-indigo-500"></div>

@@ -35,7 +35,7 @@ export default function TrashPage() {
   const handleRestore = async (taskId) => {
     try {
       await api.restoreTask(taskId);
-      setDeletedTasks(prev => prev.filter(t => t.id !== taskId));
+      setDeletedTasks((prev) => prev.filter((t) => t.id !== taskId));
       refreshData(); // Refresh main task list
     } catch (err) {
       console.error('Failed to restore task:', err);
@@ -46,7 +46,7 @@ export default function TrashPage() {
   const handlePermanentDelete = async (taskId) => {
     try {
       await api.permanentlyDeleteTask(taskId);
-      setDeletedTasks(prev => prev.filter(t => t.id !== taskId));
+      setDeletedTasks((prev) => prev.filter((t) => t.id !== taskId));
     } catch (err) {
       console.error('Failed to delete task:', err);
       setError('Failed to permanently delete task');
@@ -91,9 +91,7 @@ export default function TrashPage() {
     <div>
       <div className="mb-6 flex justify-between items-end">
         <div>
-          <h2 className="text-3xl font-bold text-white tracking-tight mb-2">
-            Trash
-          </h2>
+          <h2 className="text-3xl font-bold text-white tracking-tight mb-2">Trash</h2>
           <p className="text-slate-400">
             {deletedTasks.length} deleted task{deletedTasks.length !== 1 ? 's' : ''}
             {deletedTasks.length > 0 && ' - Items are permanently deleted after 30 days'}
@@ -126,8 +124,8 @@ export default function TrashPage() {
               <h3 className="text-xl font-semibold text-white">Empty Trash?</h3>
             </div>
             <p className="text-slate-400 mb-6">
-              This will permanently delete {deletedTasks.length} task{deletedTasks.length !== 1 ? 's' : ''}.
-              This action cannot be undone.
+              This will permanently delete {deletedTasks.length} task
+              {deletedTasks.length !== 1 ? 's' : ''}. This action cannot be undone.
             </p>
             <div className="flex gap-3 justify-end">
               <button
@@ -158,7 +156,7 @@ export default function TrashPage() {
         </div>
       ) : (
         <div className="space-y-2">
-          {deletedTasks.map(task => {
+          {deletedTasks.map((task) => {
             const daysLeft = daysUntilPermanentDelete(task.deletedAt);
             return (
               <div

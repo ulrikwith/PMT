@@ -33,51 +33,57 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
   const formatDate = (dateStr) => {
     if (!dateStr) return '';
     try {
-        return new Date(dateStr).toISOString().split('T')[0];
-    } catch (e) { return ''; }
+      return new Date(dateStr).toISOString().split('T')[0];
+    } catch (e) {
+      return '';
+    }
   };
 
   // Reset state when node changes
   useEffect(() => {
-      setStep(1);
-      setNewTool(''); // Reset tool input
-      
-      // Case-insensitive element matching
-      const dimConfig = getDimensionConfig(node.data.dimension);
-      const dimElements = dimConfig ? dimConfig.elements.map(e => e.label) : []; // Use labels for matching/display
-      
-      const rawElement = node.data.element || '';
-      // Try to find matching label case-insensitively
-      const matchedElement = dimElements.find(e => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
+    setStep(1);
+    setNewTool(''); // Reset tool input
 
-      setWorkData({
-        label: node.data.label !== 'New Work' ? node.data.label : '',
-        description: node.data.description || '',
-        element: matchedElement,
-        dimension: node.data.dimension || '',
-        workType: node.data.workType || 'part-of-element',
-        targetOutcome: node.data.targetOutcome || '',
-        startDate: formatDate(node.data.startDate),
-        targetCompletion: formatDate(node.data.targetCompletion || node.data.dueDate), // Handle both potential field names
-        activities: node.data.activities || [],
-        resources: {
-          timeEstimate: node.data.resources?.timeEstimate || '',
-          energyLevel: node.data.resources?.energyLevel || 'focused',
-          tools: node.data.resources?.tools || [],
-          materials: node.data.resources?.materials || '',
-          people: node.data.resources?.people || [],
-          notes: node.data.resources?.notes || '',
-        },
-      });
+    // Case-insensitive element matching
+    const dimConfig = getDimensionConfig(node.data.dimension);
+    const dimElements = dimConfig ? dimConfig.elements.map((e) => e.label) : []; // Use labels for matching/display
+
+    const rawElement = node.data.element || '';
+    // Try to find matching label case-insensitively
+    const matchedElement =
+      dimElements.find((e) => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
+
+    setWorkData({
+      label: node.data.label !== 'New Work' ? node.data.label : '',
+      description: node.data.description || '',
+      element: matchedElement,
+      dimension: node.data.dimension || '',
+      workType: node.data.workType || 'part-of-element',
+      targetOutcome: node.data.targetOutcome || '',
+      startDate: formatDate(node.data.startDate),
+      targetCompletion: formatDate(node.data.targetCompletion || node.data.dueDate), // Handle both potential field names
+      activities: node.data.activities || [],
+      resources: {
+        timeEstimate: node.data.resources?.timeEstimate || '',
+        energyLevel: node.data.resources?.energyLevel || 'focused',
+        tools: node.data.resources?.tools || [],
+        materials: node.data.resources?.materials || '',
+        people: node.data.resources?.people || [],
+        notes: node.data.resources?.notes || '',
+      },
+    });
   }, [node.id, node.data]);
 
   // Sync Total Hours when activities change
   useEffect(() => {
-    const total = workData.activities.reduce((sum, act) => sum + (parseFloat(act.timeEstimate) || 0), 0);
+    const total = workData.activities.reduce(
+      (sum, act) => sum + (parseFloat(act.timeEstimate) || 0),
+      0
+    );
     if (parseFloat(workData.resources.timeEstimate) !== total) {
-      setWorkData(prev => ({
+      setWorkData((prev) => ({
         ...prev,
-        resources: { ...prev.resources, timeEstimate: total.toString() }
+        resources: { ...prev.resources, timeEstimate: total.toString() },
       }));
     }
   }, [workData.activities]);
@@ -86,30 +92,30 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
     // Check for pending tool input
     let finalTools = [...workData.resources.tools];
     if (newTool.trim() && !finalTools.includes(newTool.trim())) {
-        finalTools.push(newTool.trim());
+      finalTools.push(newTool.trim());
     }
 
     // If saving 'New Work' with no name, default it
     const finalLabel = workData.label.trim() || 'New Work';
-    
+
     onSave({
-        ...workData,
-        label: finalLabel,
-        status: finalLabel !== 'New Work' ? 'in-progress' : 'empty',
-        resources: {
-            ...workData.resources,
-            tools: finalTools
-        }
+      ...workData,
+      label: finalLabel,
+      status: finalLabel !== 'New Work' ? 'in-progress' : 'empty',
+      resources: {
+        ...workData.resources,
+        tools: finalTools,
+      },
     });
   };
 
   const getElements = (dimId) => {
-      const config = getDimensionConfig(dimId);
-      return config ? config.elements.map(e => e.label) : [];
+    const config = getDimensionConfig(dimId);
+    return config ? config.elements.map((e) => e.label) : [];
   };
 
   // Filter out tools already selected
-  const suggestedTools = allTools.filter(t => !workData.resources.tools.includes(t));
+  const suggestedTools = allTools.filter((t) => !workData.resources.tools.includes(t));
 
   return (
     <div className="absolute top-0 right-0 w-[480px] h-full glass-panel border-l border-white/5 shadow-2xl transform translate-x-0 transition-transform duration-300 flex flex-col z-20 bg-slate-950/90 backdrop-blur-md">
@@ -169,9 +175,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-300 mb-2">
-                Description
-              </label>
+              <label className="block text-sm font-medium text-slate-300 mb-2">Description</label>
               <textarea
                 value={workData.description}
                 onChange={(e) => setWorkData({ ...workData, description: e.target.value })}
@@ -192,16 +196,16 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
               >
                 <option value="">Select Element...</option>
                 {getElements(workData.dimension).map((el) => (
-                  <option key={el} value={el}>{el}</option>
+                  <option key={el} value={el}>
+                    {el}
+                  </option>
                 ))}
               </select>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
-                  Start Date
-                </label>
+                <label className="block text-sm font-medium text-slate-300 mb-2">Start Date</label>
                 <input
                   type="date"
                   value={workData.startDate}
@@ -249,7 +253,10 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
             <div className="space-y-3">
               {workData.activities.map((activity, index) => (
-                <div key={activity.id} className="glass-panel rounded-lg p-4 border border-white/10">
+                <div
+                  key={activity.id}
+                  className="glass-panel rounded-lg p-4 border border-white/10"
+                >
                   <div className="flex items-start gap-3">
                     <div className="flex items-center justify-center w-7 h-7 rounded-lg bg-slate-700/30 border border-slate-700/30 text-slate-400 font-semibold text-sm flex-shrink-0 mt-1">
                       {index + 1}
@@ -280,19 +287,19 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                           placeholder="Hours"
                         />
                         <span className="text-xs text-slate-500">hours</span>
-                        
-                        <select 
-                            value={activity.status}
-                            onChange={(e) => {
-                                const updated = [...workData.activities];
-                                updated[index].status = e.target.value;
-                                setWorkData({ ...workData, activities: updated });
-                            }}
-                            className="bg-slate-900/60 border border-white/10 rounded text-xs text-slate-300 px-2 py-1"
+
+                        <select
+                          value={activity.status}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].status = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="bg-slate-900/60 border border-white/10 rounded text-xs text-slate-300 px-2 py-1"
                         >
-                            <option value="todo">Todo</option>
-                            <option value="in-progress">In Progress</option>
-                            <option value="done">Done</option>
+                          <option value="todo">Todo</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="done">Done</option>
                         </select>
                       </div>
                     </div>
@@ -343,7 +350,9 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                       readOnly
                       className="w-full px-3 py-2 bg-slate-900/40 border border-white/5 rounded-lg text-slate-400 focus:outline-none cursor-not-allowed font-semibold"
                     />
-                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">h</div>
+                    <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-500">
+                      h
+                    </div>
                   </div>
                 </div>
                 <div>
@@ -375,29 +384,33 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                 <Wrench className="text-purple-500" size={20} />
                 <h4 className="text-sm font-semibold text-white">Tools & Software</h4>
               </div>
-              
+
               {/* Suggested Tools */}
               {suggestedTools.length > 0 && (
-                  <div className="mb-3">
-                      <div className="text-[10px] text-slate-500 uppercase font-bold mb-2">Suggested</div>
-                      <div className="flex flex-wrap gap-2">
-                          {suggestedTools.map(t => (
-                              <button
-                                  key={t}
-                                  onClick={() => setWorkData({
-                                      ...workData,
-                                      resources: {
-                                          ...workData.resources,
-                                          tools: [...workData.resources.tools, t]
-                                      }
-                                  })}
-                                  className="px-2 py-1 bg-slate-800 border border-slate-700 hover:border-purple-500/50 hover:text-purple-400 rounded text-xs text-slate-400 transition-colors"
-                              >
-                                  + {t}
-                              </button>
-                          ))}
-                      </div>
+                <div className="mb-3">
+                  <div className="text-[10px] text-slate-500 uppercase font-bold mb-2">
+                    Suggested
                   </div>
+                  <div className="flex flex-wrap gap-2">
+                    {suggestedTools.map((t) => (
+                      <button
+                        key={t}
+                        onClick={() =>
+                          setWorkData({
+                            ...workData,
+                            resources: {
+                              ...workData.resources,
+                              tools: [...workData.resources.tools, t],
+                            },
+                          })
+                        }
+                        className="px-2 py-1 bg-slate-800 border border-slate-700 hover:border-purple-500/50 hover:text-purple-400 rounded text-xs text-slate-400 transition-colors"
+                      >
+                        + {t}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               )}
 
               <div className="space-y-3">
@@ -479,16 +492,15 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                   <div className="text-xs font-medium text-slate-500 uppercase tracking-wider mb-1">
                     Activity Count
                   </div>
-                  <div className="text-white">
-                    {workData.activities.length} activities
-                  </div>
+                  <div className="text-white">{workData.activities.length} activities</div>
                 </div>
               </div>
             </div>
 
             <div className="bg-blue-500/10 border border-blue-500/20 rounded-lg p-4">
               <p className="text-sm text-blue-400">
-                Clicking "Save" will update the Project node on the canvas and create {workData.activities.length} activity child nodes.
+                Clicking "Save" will update the Project node on the canvas and create{' '}
+                {workData.activities.length} activity child nodes.
               </p>
             </div>
           </div>

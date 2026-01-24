@@ -8,6 +8,9 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'pmt-secret-key-change-in-prod';
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
+// 🚧 TEMPORARY BYPASS - Set to true to disable authentication
+const BYPASS_AUTH = true;
+
 // 1. Register (Ordinary Email)
 router.post('/register', async (req, res) => {
   const { email, password, name } = req.body;
@@ -26,11 +29,14 @@ router.post('/register', async (req, res) => {
     const hash = await bcrypt.hash(password, salt);
 
     const newUser = await authStorage.createUser(email, hash, null, name);
-    
-    // Auto-login
-    const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.status(201).json({ token, user: { id: newUser.id, email: newUser.email, name: newUser.name } });
 
+    // Auto-login
+    const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, {
+      expiresIn: '7d',
+    });
+    res
+      .status(201)
+      .json({ token, user: { id: newUser.id, email: newUser.email, name: newUser.name } });
   } catch (e) {
     console.error('Register error:', e);
     res.status(500).json({ error: 'Registration failed' });
@@ -48,7 +54,7 @@ router.post('/login', async (req, res) => {
     }
 
     if (!user.hash) {
-       return res.status(400).json({ error: 'Please login with Google' }); 
+      return res.status(400).json({ error: 'Please login with Google' });
     }
 
     const isMatch = await bcrypt.compare(password, user.hash);
@@ -58,7 +64,6 @@ router.post('/login', async (req, res) => {
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
-
   } catch (e) {
     console.error('Login error:', e);
     res.status(500).json({ error: 'Login failed' });
@@ -72,7 +77,7 @@ router.post('/google', async (req, res) => {
   try {
     const ticket = await client.verifyIdToken({
       idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID
+      audience: process.env.GOOGLE_CLIENT_ID,
     });
     const payload = ticket.getPayload();
     const { email, sub: googleId, name } = payload;
@@ -89,7 +94,6 @@ router.post('/google', async (req, res) => {
 
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
     res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
-
   } catch (e) {
     console.error('Google Auth Error:', e);
     res.status(400).json({ error: 'Google authentication failed' });
@@ -98,6 +102,12 @@ router.post('/google', async (req, res) => {
 
 // Middleware for protecting routes
 export const authenticateToken = (req, res, next) => {
+  // 🚧 BYPASS: Skip authentication when BYPASS_AUTH is enabled
+  if (BYPASS_AUTH) {
+    req.user = { id: 'bypass-user', email: 'user@local.dev' };
+    return next();
+  }
+
   const authHeader = req.headers['authorization'];
   const token = authHeader && authHeader.split(' ')[1];
 

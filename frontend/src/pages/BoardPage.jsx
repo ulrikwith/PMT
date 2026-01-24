@@ -7,7 +7,7 @@ import ReactFlow, {
   useEdgesState,
   useReactFlow,
   ReactFlowProvider,
-  Panel
+  Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
 import { Plus, Book } from 'lucide-react';
@@ -18,6 +18,7 @@ import WorkWizardPanel from '../components/WorkflowBoard/WorkWizardPanel';
 import ConnectionModal from '../components/WorkflowBoard/ConnectionModal';
 import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
 import MissionControl from '../components/WorkflowBoard/MissionControl';
+import { useLocation } from 'react-router-dom';
 import { useTasks } from '../context/TasksContext';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { DIMENSIONS, getDimensionConfig } from '../constants/taxonomy';
@@ -30,13 +31,13 @@ const nodeTypes = {
 
 // Grid configuration - spreadsheet-like cells
 const GRID = {
-  CELL_WIDTH: 280,       // Width of collapsed cell
-  CELL_HEIGHT: 160,      // Height of collapsed cell
-  EXPANDED_WIDTH: 660,   // Width when expanded (with activities)
-  EXPANDED_HEIGHT: 450,  // Height when expanded
-  GAP_X: 40,             // Horizontal gap between cells
-  GAP_Y: 40,             // Vertical gap between cells
-  COLS: 4,               // Number of columns
+  CELL_WIDTH: 280, // Width of collapsed cell
+  CELL_HEIGHT: 160, // Height of collapsed cell
+  EXPANDED_WIDTH: 660, // Width when expanded (with activities)
+  EXPANDED_HEIGHT: 450, // Height when expanded
+  GAP_X: 40, // Horizontal gap between cells
+  GAP_Y: 40, // Vertical gap between cells
+  COLS: 4, // Number of columns
   ORIGIN_X: 50,
   ORIGIN_Y: 50,
 };
@@ -115,12 +116,21 @@ function calculateGridBounds(tasks, expandedSet) {
     width: totalWidth,
     height: totalHeight,
     centerX: GRID.ORIGIN_X + totalWidth / 2,
-    centerY: GRID.ORIGIN_Y + totalHeight / 2
+    centerY: GRID.ORIGIN_Y + totalHeight / 2,
   };
 }
 
 function BoardPageInner() {
-  const { tasks, relationships, loading, createTask, updateTask, deleteTask, createRelationship, deleteRelationship } = useTasks();
+  const {
+    tasks,
+    relationships,
+    loading,
+    createTask,
+    updateTask,
+    deleteTask,
+    createRelationship,
+    deleteRelationship,
+  } = useTasks();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { setCenter, fitView } = useReactFlow();
   const [activeDimension, setActiveDimension] = useState('content');
@@ -154,7 +164,7 @@ function BoardPageInner() {
     if (config) {
       setBreadcrumbs([
         { label: 'Projects', icon: LayoutGrid },
-        { label: config.label, icon: config.icon, color: config.color }
+        { label: config.label, icon: config.icon, color: config.color },
       ]);
     }
     return () => setBreadcrumbs([]);
@@ -163,10 +173,20 @@ function BoardPageInner() {
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.isContentEditable) {
+      if (
+        e.target.tagName === 'INPUT' ||
+        e.target.tagName === 'TEXTAREA' ||
+        e.target.isContentEditable
+      ) {
         return;
       }
-      const keyToDimension = { '1': 'content', '2': 'practice', '3': 'community', '4': 'marketing', '5': 'admin' };
+      const keyToDimension = {
+        1: 'content',
+        2: 'practice',
+        3: 'community',
+        4: 'marketing',
+        5: 'admin',
+      };
       if (keyToDimension[e.key]) {
         setActiveDimension(keyToDimension[e.key]);
         initialCenterDone.current = false; // Re-center when switching dimensions
@@ -181,19 +201,19 @@ function BoardPageInner() {
     if (loading) return [];
 
     return tasks
-      .filter(t => {
+      .filter((t) => {
         if (!activeDimension) return true;
-        return t.tags && t.tags.some(tag => tag.toLowerCase() === activeDimension.toLowerCase());
+        return t.tags && t.tags.some((tag) => tag.toLowerCase() === activeDimension.toLowerCase());
       })
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
   }, [tasks, activeDimension, loading]);
 
   // Memoize dimension IDs to avoid recreation
-  const dimensionIds = useMemo(() => DIMENSIONS.map(d => d.id), []);
+  const dimensionIds = useMemo(() => DIMENSIONS.map((d) => d.id), []);
 
   // Sync Nodes with Tasks - Fixed cell positions
   useEffect(() => {
-    if (loading || dimensionTasks.length === 0 && tasks.length > 0) return;
+    if (loading || (dimensionTasks.length === 0 && tasks.length > 0)) return;
 
     const loadedNodes = [];
     const loadedEdges = [];
@@ -205,23 +225,24 @@ function BoardPageInner() {
       const isExpanded = expandedNodes.has(task.id);
 
       // Find cross-dimension relationships
-      const crossLinks = relationships.filter(rel =>
-        (rel.fromTaskId === task.id || rel.toTaskId === task.id)
-      ).map(rel => {
-        const otherTaskId = rel.fromTaskId === task.id ? rel.toTaskId : rel.fromTaskId;
-        const otherTask = tasks.find(t => t.id === otherTaskId);
-        const isVisible = dimensionTasks.some(t => t.id === otherTaskId);
-        if (isVisible) return null;
-        const otherDim = otherTask?.tags.find(tag => dimensionIds.includes(tag.toLowerCase()));
-        return {
-          id: rel.id,
-          type: rel.type,
-          targetId: otherTaskId,
-          targetDimension: otherDim || 'unknown',
-          targetTitle: otherTask?.title || 'Unknown Task',
-          isOutgoing: rel.fromTaskId === task.id
-        };
-      }).filter(Boolean);
+      const crossLinks = relationships
+        .filter((rel) => rel.fromTaskId === task.id || rel.toTaskId === task.id)
+        .map((rel) => {
+          const otherTaskId = rel.fromTaskId === task.id ? rel.toTaskId : rel.fromTaskId;
+          const otherTask = tasks.find((t) => t.id === otherTaskId);
+          const isVisible = dimensionTasks.some((t) => t.id === otherTaskId);
+          if (isVisible) return null;
+          const otherDim = otherTask?.tags.find((tag) => dimensionIds.includes(tag.toLowerCase()));
+          return {
+            id: rel.id,
+            type: rel.type,
+            targetId: otherTaskId,
+            targetDimension: otherDim || 'unknown',
+            targetTitle: otherTask?.title || 'Unknown Task',
+            isOutgoing: rel.fromTaskId === task.id,
+          };
+        })
+        .filter(Boolean);
 
       loadedNodes.push({
         id: task.id,
@@ -232,7 +253,7 @@ function BoardPageInner() {
           label: task.title,
           description: task.description,
           status: task.status === 'Done' ? 'complete' : 'in-progress',
-          element: task.tags.find(t => !dimensionIds.includes(t.toLowerCase())),
+          element: task.tags.find((t) => !dimensionIds.includes(t.toLowerCase())),
           dimension: activeDimension,
           activities: task.activities || [],
           resources: task.resources || {},
@@ -253,15 +274,15 @@ function BoardPageInner() {
             if (window.confirm('Are you sure you want to delete this project?')) {
               deleteTask(task.id);
             }
-          }
-        }
+          },
+        },
       });
     });
 
     // Map Relationships to Edges
-    relationships.forEach(rel => {
-      const sourceVisible = dimensionTasks.some(t => t.id === rel.fromTaskId);
-      const targetVisible = dimensionTasks.some(t => t.id === rel.toTaskId);
+    relationships.forEach((rel) => {
+      const sourceVisible = dimensionTasks.some((t) => t.id === rel.fromTaskId);
+      const targetVisible = dimensionTasks.some((t) => t.id === rel.toTaskId);
 
       if (sourceVisible && targetVisible) {
         loadedEdges.push({
@@ -289,21 +310,36 @@ function BoardPageInner() {
         initialCenterDone.current = true;
       }, 100);
     }
-
-  }, [dimensionTasks, relationships, loading, expandedNodes, toggleExpand, deleteTask, jumpToWork, setNodes, setEdges, setCenter, tasks, dimensionIds]);
+  }, [
+    dimensionTasks,
+    relationships,
+    loading,
+    expandedNodes,
+    toggleExpand,
+    deleteTask,
+    jumpToWork,
+    setNodes,
+    setEdges,
+    setCenter,
+    tasks,
+    dimensionIds,
+  ]);
 
   // Reset center flag when dimension changes
   useEffect(() => {
     initialCenterDone.current = false;
   }, [activeDimension]);
 
-  const onEdgesDelete = useCallback((edgesToDelete) => {
-    edgesToDelete.forEach(edge => {
-      if (!edge.id.startsWith('e-')) {
-        deleteRelationship(edge.id);
-      }
-    });
-  }, [deleteRelationship]);
+  const onEdgesDelete = useCallback(
+    (edgesToDelete) => {
+      edgesToDelete.forEach((edge) => {
+        if (!edge.id.startsWith('e-')) {
+          deleteRelationship(edge.id);
+        }
+      });
+    },
+    [deleteRelationship]
+  );
 
   const onNodeClick = useCallback((event, node) => {
     if (node.type === 'work') {
@@ -319,12 +355,17 @@ function BoardPageInner() {
   // Add new Work - automatically goes to next cell
   const addNewWork = useCallback(() => {
     const dimensionTasks = tasks
-      .filter(t => t.tags && t.tags.some(tag => tag.toLowerCase() === activeDimension.toLowerCase()))
+      .filter(
+        (t) => t.tags && t.tags.some((tag) => tag.toLowerCase() === activeDimension.toLowerCase())
+      )
       .sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
 
     const newId = `new-work-${Date.now()}`;
     const cellIndex = dimensionTasks.length; // Next available cell
-    const position = calculateCellPosition(cellIndex, expandedNodes, [...dimensionTasks, { id: newId }]);
+    const position = calculateCellPosition(cellIndex, expandedNodes, [
+      ...dimensionTasks,
+      { id: newId },
+    ]);
 
     const newNode = {
       id: newId,
@@ -369,7 +410,7 @@ function BoardPageInner() {
       // Only close on success
       setWizardOpen(false);
     } catch (e) {
-      console.error("Save failed:", e);
+      console.error('Save failed:', e);
       // Show error to user (could add toast notification here)
       alert(`Failed to save project: ${e.message || 'Unknown error'}. Please try again.`);
       // Keep wizard open so user can retry
@@ -386,11 +427,10 @@ function BoardPageInner() {
         }}
       />
 
-      <div className="px-6 pt-4">
-        <MissionControl dimension={activeDimension} />
-      </div>
+      {/* MissionControl is now a floating button */}
+      <MissionControl dimension={activeDimension} />
 
-      <div className="flex-1 relative border-t border-white/5">
+      <div className="flex-1 relative">
         <ReactFlow
           nodes={nodes}
           edges={edges}
@@ -408,14 +448,14 @@ function BoardPageInner() {
           className="bg-slate-950"
         >
           <Background color="#1e293b" gap={20} />
-          
+
           <MiniMap
             style={{ height: 120, width: 160 }}
             zoomable
             pannable
             maskColor="rgba(2, 6, 23, 0.7)"
             className="!bg-slate-800/40 !backdrop-blur-xl !border !border-white/5 !shadow-xl !rounded-xl !m-4"
-            nodeColor={(node) => node.type === 'work' ? '#3B82F6' : '#64748B'}
+            nodeColor={(node) => (node.type === 'work' ? '#3B82F6' : '#64748B')}
           />
 
           <Panel position="top-right" className="flex gap-2">
@@ -436,9 +476,12 @@ function BoardPageInner() {
               <div className="w-16 h-16 bg-blue-500/10 rounded-2xl flex items-center justify-center mx-auto mb-6 border border-blue-500/20">
                 <Book className="text-blue-500" size={32} />
               </div>
-              <h2 className="text-2xl font-bold text-white mb-3">Welcome to your {getDimensionConfig(activeDimension)?.label} Projects</h2>
+              <h2 className="text-2xl font-bold text-white mb-3">
+                Welcome to your {getDimensionConfig(activeDimension)?.label} Projects
+              </h2>
               <p className="text-slate-400 mb-8 leading-relaxed">
-                Create <strong>Projects</strong>—meaningful outcomes you want to produce. Each Project occupies a fixed cell in the grid.
+                Create <strong>Projects</strong>—meaningful outcomes you want to produce. Each
+                Project occupies a fixed cell in the grid.
               </p>
               <button
                 onClick={addNewWork}
@@ -448,7 +491,8 @@ function BoardPageInner() {
                 Create Your First Project
               </button>
               <div className="mt-4 text-xs text-slate-500">
-                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">1-5</kbd> Switch Boards
+                <kbd className="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10">1-5</kbd>{' '}
+                Switch Boards
               </div>
             </div>
           </div>
@@ -491,7 +535,7 @@ function getConnectionColor(type) {
     'feeds-into': '#3B82F6',
     'comes-from': '#10B981',
     'related-to': '#8B5CF6',
-    'blocks': '#F59E0B',
+    blocks: '#F59E0B',
   };
   return colors[type] || '#94A3B8';
 }

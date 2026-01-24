@@ -20,7 +20,7 @@ app.use('/api/auth', authRoutes);
 // Protected Routes Middleware (Apply to task operations)
 // For now, let's keep GET public but protect mutations if desired.
 // Or apply globally except health/auth.
-// app.use('/api/tasks', authenticateToken); 
+// app.use('/api/tasks', authenticateToken);
 // Currently disabled to avoid breaking frontend dev flow immediately.
 // Uncomment above line to enforce auth.
 
@@ -35,7 +35,7 @@ app.get('/api/health', (req, res) => {
   res.json({
     status: 'ok',
     message: 'PMT Backend is running',
-    mode: 'cloud'
+    mode: 'cloud',
   });
 });
 
@@ -46,12 +46,13 @@ app.get('/api/launch/phases', (req, res) => {
 });
 
 app.get('/api/launch/milestones', (req, res) => {
-  const allMilestones = Object.values(LAUNCH_PHASES)
-    .flatMap(phase => phase.milestones.map(m => ({
+  const allMilestones = Object.values(LAUNCH_PHASES).flatMap((phase) =>
+    phase.milestones.map((m) => ({
       ...m,
       phase: phase.name,
-      quarter: phase.quarter
-    })));
+      quarter: phase.quarter,
+    }))
+  );
   res.json(allMilestones);
 });
 
@@ -107,7 +108,7 @@ app.get('/api/export', async (req, res) => {
     tags: tags.success ? tags.data : [],
     relationships: relationships.success ? relationships.data : [],
     exportDate: new Date().toISOString(),
-    version: '1.0'
+    version: '1.0',
   };
 
   const format = req.query.format || 'json';

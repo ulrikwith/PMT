@@ -12,8 +12,8 @@ export default function QuickCapture() {
 
   const handleCapture = async () => {
     if (!description.trim() || tags.length === 0) {
-        alert("Please add a description and at least one tag.");
-        return;
+      alert('Please add a description and at least one tag.');
+      return;
     }
 
     setIsSubmitting(true);
@@ -22,7 +22,7 @@ export default function QuickCapture() {
       await createTask({
         title: description.substring(0, 50) + (description.length > 50 ? '...' : ''),
         description: description,
-        tags: tags // User MUST select these
+        tags: tags, // User MUST select these
       });
 
       setDescription('');
@@ -36,19 +36,19 @@ export default function QuickCapture() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-6 left-6 z-50">
       {isOpen ? (
         <div className="glass-panel rounded-2xl p-6 w-96 shadow-2xl border-blue-500/20 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
             <h3 className="text-lg font-semibold text-white">Quick Add</h3>
-            <button 
+            <button
               onClick={() => setIsOpen(false)}
               className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
             >
               <X size={18} />
             </button>
           </div>
-          
+
           <textarea
             className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all resize-none mb-4"
             rows={3}
@@ -60,13 +60,13 @@ export default function QuickCapture() {
           />
 
           <div className="mb-4">
-              <span className="text-xs text-slate-500 mb-2 block">Required: Select Dimensions</span>
-              <div className="max-h-32 overflow-y-auto">
-                <TagSelector selectedTags={tags} onChange={setTags} />
-              </div>
+            <span className="text-xs text-slate-500 mb-2 block">Required: Select Dimensions</span>
+            <div className="max-h-32 overflow-y-auto">
+              <TagSelector selectedTags={tags} onChange={setTags} />
+            </div>
           </div>
-          
-          <button 
+
+          <button
             onClick={handleCapture}
             disabled={isSubmitting || !description.trim() || tags.length === 0}
             className="w-full px-4 py-3 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
@@ -75,11 +75,14 @@ export default function QuickCapture() {
           </button>
         </div>
       ) : (
-        <button 
+        <button
           onClick={() => setIsOpen(true)}
-          className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 hover:scale-105 active:scale-95 transition-all flex items-center gap-2 group border border-white/10"
+          className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 group border border-white/10 min-w-[180px]"
         >
-          <Lightbulb size={24} className="text-yellow-300 group-hover:text-yellow-200 transition-colors" />
+          <Lightbulb
+            size={24}
+            className="text-yellow-300 group-hover:text-yellow-200 transition-colors"
+          />
           <span className="tracking-wide">Capture Idea</span>
         </button>
       )}

@@ -10,8 +10,8 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
       if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
         return;
       }
-      
-      // Escape to close modal (if open) - handled by modal itself or parent usually, 
+
+      // Escape to close modal (if open) - handled by modal itself or parent usually,
       // but let's ensure we don't block it.
 
       // Cmd/Ctrl + K: Focus Search
@@ -19,7 +19,7 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
         e.preventDefault();
         console.log('Search shortcut triggered');
       }
-      
+
       // Cmd/Ctrl + /: Show shortcuts
       if ((e.metaKey || e.ctrlKey) && e.key === '/') {
         e.preventDefault();
@@ -28,18 +28,18 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
 
       // Navigation Shortcuts
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'L') {
-          e.preventDefault();
-          navigate('/timeline');
+        e.preventDefault();
+        navigate('/timeline');
       }
-      
+
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'R') {
-          e.preventDefault();
-          navigate('/readiness');
+        e.preventDefault();
+        navigate('/readiness');
       }
 
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'T') {
-          e.preventDefault();
-          navigate('/');
+        e.preventDefault();
+        navigate('/');
       }
     }
 

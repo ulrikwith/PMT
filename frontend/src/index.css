@@ -1,31 +1,41 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-@import "tailwindcss";
+@import 'tailwindcss';
 
 @layer base {
-  html, body, #root {
+  html,
+  body,
+  #root {
     height: 100%;
     margin: 0;
     font-size: 14px;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    background-color: #0B1120;
+    background-color: #0b1120;
   }
 
   body {
     @apply text-slate-200 transition-colors duration-300 leading-relaxed;
-    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    font-family:
+      'Inter',
+      -apple-system,
+      BlinkMacSystemFont,
+      sans-serif;
   }
 
   body::selection {
     background-color: rgba(59, 130, 246, 0.3);
   }
 
-  h1, h2, h3 {
+  h1,
+  h2,
+  h3 {
     @apply font-bold tracking-tight text-white;
   }
 
-  input:focus, textarea:focus, select:focus {
+  input:focus,
+  textarea:focus,
+  select:focus {
     @apply ring-2 ring-blue-500/20 border-blue-500/50 outline-none;
   }
 }

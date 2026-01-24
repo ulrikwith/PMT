@@ -48,7 +48,7 @@ export default function LoginPage() {
                 placeholder="Full Name"
                 className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-10 py-3 text-white focus:border-blue-500/50 focus:outline-none"
                 value={formData.name}
-                onChange={e => setFormData({...formData, name: e.target.value})}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
             </div>
@@ -61,7 +61,7 @@ export default function LoginPage() {
               placeholder="Email Address"
               className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-10 py-3 text-white focus:border-blue-500/50 focus:outline-none"
               value={formData.email}
-              onChange={e => setFormData({...formData, email: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
             />
           </div>
@@ -73,7 +73,7 @@ export default function LoginPage() {
               placeholder="Password"
               className="w-full bg-slate-900/50 border border-white/10 rounded-xl px-10 py-3 text-white focus:border-blue-500/50 focus:outline-none"
               value={formData.password}
-              onChange={e => setFormData({...formData, password: e.target.value})}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
             />
           </div>

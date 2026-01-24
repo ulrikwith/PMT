@@ -40,7 +40,9 @@ axiosInstance.interceptors.response.use(
       );
 
       // Exponential backoff: 1s, 2s, 4s...
-      await new Promise(resolve => setTimeout(resolve, 1000 * Math.pow(2, config.__retryCount - 1)));
+      await new Promise((resolve) =>
+        setTimeout(resolve, 1000 * Math.pow(2, config.__retryCount - 1))
+      );
 
       return axiosInstance(config);
     }
@@ -52,7 +54,7 @@ axiosInstance.interceptors.response.use(
       error: error.message,
       response: error.response?.data,
       status: error.response?.status,
-      retriesAttempted: config.__retryCount || 0
+      retriesAttempted: config.__retryCount || 0,
     });
 
     return Promise.reject(error);
@@ -84,7 +86,7 @@ const api = {
 
   deleteTask: async (taskId, permanent = false) => {
     const response = await axiosInstance.delete(`/tasks/${taskId}`, {
-      params: permanent ? { permanent: 'true' } : {}
+      params: permanent ? { permanent: 'true' } : {},
     });
     return response.data;
   },
@@ -102,7 +104,7 @@ const api = {
 
   emptyTrash: async (olderThanDays = null) => {
     const response = await axiosInstance.delete('/trash', {
-      params: olderThanDays ? { olderThanDays } : {}
+      params: olderThanDays ? { olderThanDays } : {},
     });
     return response.data;
   },
@@ -176,8 +178,8 @@ const api = {
   },
 
   exportData: async () => {
-      // Trigger download directly
-      window.location.href = `${API_BASE_URL}/export?format=json`;
+    // Trigger download directly
+    window.location.href = `${API_BASE_URL}/export?format=json`;
   },
 
   // Workspaces

@@ -18,7 +18,7 @@ class CommentService {
         category: 'TODO',
         categoryId: todoId,
         text,
-        html: html || text
+        html: html || text,
       };
 
       const result = await coreClient.query(mutation, { input });
@@ -47,7 +47,7 @@ class CommentService {
       `;
 
       const result = await coreClient.query(query, {
-        categoryId: todoId
+        categoryId: todoId,
       });
 
       if (!result.success) {

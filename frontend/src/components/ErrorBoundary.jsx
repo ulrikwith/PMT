@@ -7,7 +7,7 @@ export default class ErrorBoundary extends React.Component {
       hasError: false,
       error: null,
       errorInfo: null,
-      errorCount: 0
+      errorCount: 0,
     };
   }
 
@@ -17,17 +17,17 @@ export default class ErrorBoundary extends React.Component {
 
   componentDidCatch(error, errorInfo) {
     // Enhanced error logging with context
-    console.error("=== Error Boundary Caught Error ===");
-    console.error("Error:", error);
-    console.error("Error Info:", errorInfo);
-    console.error("Component Stack:", errorInfo.componentStack);
-    console.error("Timestamp:", new Date().toISOString());
-    console.error("=====================================");
+    console.error('=== Error Boundary Caught Error ===');
+    console.error('Error:', error);
+    console.error('Error Info:', errorInfo);
+    console.error('Component Stack:', errorInfo.componentStack);
+    console.error('Timestamp:', new Date().toISOString());
+    console.error('=====================================');
 
     // Store error info for display
-    this.setState(prev => ({
+    this.setState((prev) => ({
       errorInfo,
-      errorCount: prev.errorCount + 1
+      errorCount: prev.errorCount + 1,
     }));
 
     // In production, you could send this to an error tracking service
@@ -38,9 +38,9 @@ export default class ErrorBoundary extends React.Component {
     this.setState({
       hasError: false,
       error: null,
-      errorInfo: null
+      errorInfo: null,
     });
-  }
+  };
 
   render() {
     if (this.state.hasError) {
@@ -49,11 +49,9 @@ export default class ErrorBoundary extends React.Component {
       return (
         <div className="flex flex-col items-center justify-center min-h-[50vh] p-6 text-center">
           <div className="p-6 bg-red-500/10 border border-red-500/20 rounded-xl max-w-2xl w-full">
-            <h2 className="text-xl font-bold text-red-500 mb-2">
-              Something went wrong
-            </h2>
+            <h2 className="text-xl font-bold text-red-500 mb-2">Something went wrong</h2>
             <p className="text-slate-400 mb-4 text-sm">
-              {this.state.error?.message || "An unexpected error occurred."}
+              {this.state.error?.message || 'An unexpected error occurred.'}
             </p>
 
             {isDev && this.state.errorInfo && (

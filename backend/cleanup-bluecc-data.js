@@ -48,7 +48,6 @@ try {
   console.log('✅ Local storage cleared!');
 
   console.log('\n🎉 Blue.cc workspace is now clean and ready for use!');
-
 } catch (error) {
   console.error('\n❌ Error during cleanup:', error.message);
   console.error(error);

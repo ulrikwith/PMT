@@ -8,7 +8,7 @@ export function parseTaskText(text) {
   if (text.includes(metaMarker)) {
     const parts = text.split(metaMarker);
     const description = parts[0].trim();
-    
+
     const rawMeta = parts[1] || '';
     const base64Meta = rawMeta.replace(/<[^>]*>/g, '').replace(/\s/g, '');
 
@@ -25,14 +25,14 @@ export function parseTaskText(text) {
             resources: parsed.r || parsed.resources || {},
             position: parsed.p || parsed.position,
             gridPosition: parsed.g || parsed.gridPosition,
-            deletedAt: parsed.d || parsed.deletedAt
-          }
+            deletedAt: parsed.d || parsed.deletedAt,
+          },
         };
       } catch (e) {
         console.error('Failed to parse task metadata:', {
           error: e.message,
           base64Meta: base64Meta.substring(0, 50) + '...', // Log first 50 chars
-          textPreview: text.substring(0, 100)
+          textPreview: text.substring(0, 100),
         });
         return { description: text, metadata: {} };
       }
@@ -43,7 +43,7 @@ export function parseTaskText(text) {
 }
 
 export function buildTaskText(description, metadata) {
-  if (!metadata || Object.keys(metadata).every(k => !metadata[k])) {
+  if (!metadata || Object.keys(metadata).every((k) => !metadata[k])) {
     return description || '';
   }
 
@@ -54,10 +54,10 @@ export function buildTaskText(description, metadata) {
     r: metadata.resources || {},
     p: metadata.position,
     g: metadata.gridPosition,
-    d: metadata.deletedAt
+    d: metadata.deletedAt,
   };
 
-  Object.keys(compactMeta).forEach(k => {
+  Object.keys(compactMeta).forEach((k) => {
     if (compactMeta[k] === null || compactMeta[k] === undefined) {
       delete compactMeta[k];
     }
@@ -70,7 +70,7 @@ export function buildTaskText(description, metadata) {
   } catch (e) {
     console.error('Failed to serialize task metadata:', {
       error: e.message,
-      metadata: compactMeta
+      metadata: compactMeta,
     });
     // Fallback to description only
     return description || '';

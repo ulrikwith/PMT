@@ -49,7 +49,7 @@ const blueClient = {
   calculateReadiness: () => launchService.calculateReadiness(),
 
   // Utils (exposed if needed)
-  formatDate: (d) => coreClient.formatDate(d)
+  formatDate: (d) => coreClient.formatDate(d),
 };
 
 export default blueClient;

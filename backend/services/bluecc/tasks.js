@@ -77,40 +77,58 @@ class TaskService {
         return { success: false, error: 'Invalid response structure from API' };
       }
 
-      let tasks = result.data.todoList.todos.map(todo => {
-        const source = (todo.html && todo.html.includes('---PMT-META---')) ? todo.html : todo.text;
+      let tasks = result.data.todoList.todos.map((todo) => {
+        const source = todo.html && todo.html.includes('---PMT-META---') ? todo.html : todo.text;
         const { description, metadata } = parseTaskText(source);
 
         // Parse Custom Fields
         let relationships = [];
         let milestones = [];
-        
+
         if (todo.customFields && Array.isArray(todo.customFields)) {
-          const relField = todo.customFields.find(f => f && f.name === 'PMT_Relationships');
+          const relField = todo.customFields.find((f) => f && f.name === 'PMT_Relationships');
           if (relField && relField.value) {
             try {
-              const parsed = typeof relField.value === 'string' ? JSON.parse(relField.value) : relField.value;
+              const parsed =
+                typeof relField.value === 'string' ? JSON.parse(relField.value) : relField.value;
               if (Array.isArray(parsed)) {
                 relationships = parsed;
               } else {
-                console.warn(`Task ${todo.id}: PMT_Relationships is not an array, got:`, typeof parsed);
+                console.warn(
+                  `Task ${todo.id}: PMT_Relationships is not an array, got:`,
+                  typeof parsed
+                );
               }
             } catch (e) {
-              console.error(`Task ${todo.id}: Failed to parse PMT_Relationships:`, e.message, 'Value:', relField.value);
+              console.error(
+                `Task ${todo.id}: Failed to parse PMT_Relationships:`,
+                e.message,
+                'Value:',
+                relField.value
+              );
             }
           }
 
-          const msField = todo.customFields.find(f => f && f.name === 'PMT_Milestones');
+          const msField = todo.customFields.find((f) => f && f.name === 'PMT_Milestones');
           if (msField && msField.value) {
             try {
-              const parsed = typeof msField.value === 'string' ? JSON.parse(msField.value) : msField.value;
+              const parsed =
+                typeof msField.value === 'string' ? JSON.parse(msField.value) : msField.value;
               if (Array.isArray(parsed)) {
                 milestones = parsed;
               } else {
-                console.warn(`Task ${todo.id}: PMT_Milestones is not an array, got:`, typeof parsed);
+                console.warn(
+                  `Task ${todo.id}: PMT_Milestones is not an array, got:`,
+                  typeof parsed
+                );
               }
             } catch (e) {
-              console.error(`Task ${todo.id}: Failed to parse PMT_Milestones:`, e.message, 'Value:', msField.value);
+              console.error(
+                `Task ${todo.id}: Failed to parse PMT_Milestones:`,
+                e.message,
+                'Value:',
+                msField.value
+              );
             }
           }
         }
@@ -122,7 +140,7 @@ class TaskService {
           status: todo.done ? 'Done' : 'In Progress',
           dueDate: todo.duedAt,
           startDate: todo.startedAt,
-          tags: todo.tags?.map(t => t.title) || [],
+          tags: todo.tags?.map((t) => t.title) || [],
           position: metadata.position || { x: 0, y: 0 },
           gridPosition: metadata.gridPosition,
           createdAt: todo.createdAt,
@@ -133,29 +151,30 @@ class TaskService {
           activities: metadata.activities || [],
           resources: metadata.resources || {},
           relationships,
-          milestones
+          milestones,
         };
       });
 
       if (!filters.includeDeleted) {
-        tasks = tasks.filter(t => !t.deletedAt);
+        tasks = tasks.filter((t) => !t.deletedAt);
       }
 
       if (filters.search) {
         const lowerSearch = filters.search.toLowerCase();
-        tasks = tasks.filter(t =>
-          (t.title || '').toLowerCase().includes(lowerSearch) ||
-          (t.description || '').toLowerCase().includes(lowerSearch)
+        tasks = tasks.filter(
+          (t) =>
+            (t.title || '').toLowerCase().includes(lowerSearch) ||
+            (t.description || '').toLowerCase().includes(lowerSearch)
         );
       }
 
       if (filters.status) {
-        tasks = tasks.filter(t => t.status === filters.status);
+        tasks = tasks.filter((t) => t.status === filters.status);
       }
 
       if (filters.dimension) {
         const dim = filters.dimension.toLowerCase();
-        tasks = tasks.filter(t => t.tags?.some(tag => tag.toLowerCase().includes(dim)));
+        tasks = tasks.filter((t) => t.tags?.some((tag) => tag.toLowerCase().includes(dim)));
       }
 
       return { success: true, data: tasks };
@@ -174,7 +193,7 @@ class TaskService {
         targetOutcome: taskData.targetOutcome,
         activities: taskData.activities,
         resources: taskData.resources,
-        position: taskData.position
+        position: taskData.position,
       });
 
       const mutation = `
@@ -198,23 +217,29 @@ class TaskService {
 
       // Prepare Custom Fields for creation
       const customFieldsInput = [];
-      
+
       if (taskData.relationships?.length > 0) {
         const relId = await customFieldService.getFieldId('PMT_Relationships');
         if (relId) {
           customFieldsInput.push({
             customFieldId: relId,
-            value: typeof taskData.relationships === 'string' ? taskData.relationships : JSON.stringify(taskData.relationships)
+            value:
+              typeof taskData.relationships === 'string'
+                ? taskData.relationships
+                : JSON.stringify(taskData.relationships),
           });
         }
       }
-      
+
       if (taskData.milestones?.length > 0) {
         const msId = await customFieldService.getFieldId('PMT_Milestones');
         if (msId) {
           customFieldsInput.push({
             customFieldId: msId,
-            value: typeof taskData.milestones === 'string' ? taskData.milestones : JSON.stringify(taskData.milestones)
+            value:
+              typeof taskData.milestones === 'string'
+                ? taskData.milestones
+                : JSON.stringify(taskData.milestones),
           });
         }
       }
@@ -225,9 +250,9 @@ class TaskService {
         description: textContent,
         duedAt: taskData.dueDate ? coreClient.formatDate(taskData.dueDate) : null,
         startedAt: taskData.startDate ? coreClient.formatDate(taskData.startDate) : null,
-        customFields: customFieldsInput
+        customFields: customFieldsInput,
       };
-      
+
       const result = await coreClient.query(mutation, { input });
 
       if (!result.success) {
@@ -261,8 +286,8 @@ class TaskService {
           milestones: taskData.milestones || [],
           position: taskData.position || { x: 0, y: 0 },
           createdAt: todo.createdAt,
-          updatedAt: todo.updatedAt
-        }
+          updatedAt: todo.updatedAt,
+        },
       };
     } catch (error) {
       console.error('Error creating task:', error);
@@ -309,14 +334,15 @@ class TaskService {
           }
         }
 
-        const hasRichUpdates = updates.description !== undefined ||
-                              updates.workType !== undefined ||
-                              updates.targetOutcome !== undefined ||
-                              updates.activities !== undefined ||
-                              updates.resources !== undefined ||
-                              updates.position !== undefined ||
-                              updates.gridPosition !== undefined ||
-                              updates.deletedAt !== undefined;
+        const hasRichUpdates =
+          updates.description !== undefined ||
+          updates.workType !== undefined ||
+          updates.targetOutcome !== undefined ||
+          updates.activities !== undefined ||
+          updates.resources !== undefined ||
+          updates.position !== undefined ||
+          updates.gridPosition !== undefined ||
+          updates.deletedAt !== undefined;
 
         if (hasRichUpdates) {
           const currentQuery = `query GetTodo($id: String!) { todo(id: $id) { text } }`;
@@ -333,27 +359,45 @@ class TaskService {
 
           const mergedMetadata = {
             workType: updates.workType !== undefined ? updates.workType : currentMetadata.workType,
-            targetOutcome: updates.targetOutcome !== undefined ? updates.targetOutcome : currentMetadata.targetOutcome,
-            activities: updates.activities !== undefined ? updates.activities : currentMetadata.activities,
-            resources: updates.resources !== undefined ? updates.resources : currentMetadata.resources,
+            targetOutcome:
+              updates.targetOutcome !== undefined
+                ? updates.targetOutcome
+                : currentMetadata.targetOutcome,
+            activities:
+              updates.activities !== undefined ? updates.activities : currentMetadata.activities,
+            resources:
+              updates.resources !== undefined ? updates.resources : currentMetadata.resources,
             position: updates.position !== undefined ? updates.position : currentMetadata.position,
-            gridPosition: updates.gridPosition !== undefined ? updates.gridPosition : currentMetadata.gridPosition,
-            deletedAt: updates.deletedAt !== undefined ? updates.deletedAt : currentMetadata.deletedAt
+            gridPosition:
+              updates.gridPosition !== undefined
+                ? updates.gridPosition
+                : currentMetadata.gridPosition,
+            deletedAt:
+              updates.deletedAt !== undefined ? updates.deletedAt : currentMetadata.deletedAt,
           };
 
-          const mergedDescription = updates.description !== undefined ? updates.description : currentDescription;
+          const mergedDescription =
+            updates.description !== undefined ? updates.description : currentDescription;
           input.html = buildTaskText(mergedDescription, mergedMetadata);
         }
 
         // Handle Custom Fields Updates
         try {
           if (updates.relationships !== undefined) {
-             const res = await customFieldService.setTaskValue(taskId, 'PMT_Relationships', updates.relationships);
-             if (!res.success) console.error('Failed to update Relationships CF:', res.error);
+            const res = await customFieldService.setTaskValue(
+              taskId,
+              'PMT_Relationships',
+              updates.relationships
+            );
+            if (!res.success) console.error('Failed to update Relationships CF:', res.error);
           }
           if (updates.milestones !== undefined) {
-             const res = await customFieldService.setTaskValue(taskId, 'PMT_Milestones', updates.milestones);
-             if (!res.success) console.error('Failed to update Milestones CF:', res.error);
+            const res = await customFieldService.setTaskValue(
+              taskId,
+              'PMT_Milestones',
+              updates.milestones
+            );
+            if (!res.success) console.error('Failed to update Milestones CF:', res.error);
           }
         } catch (e) {
           console.error('Error updating custom fields:', e);
@@ -378,7 +422,7 @@ class TaskService {
               status: todo.done ? 'Done' : 'In Progress',
               dueDate: todo.duedAt,
               startDate: todo.startedAt,
-              tags: todo.tags?.map(t => t.title) || [],
+              tags: todo.tags?.map((t) => t.title) || [],
               updatedAt: todo.updatedAt,
               workType: metadata.workType,
               targetOutcome: metadata.targetOutcome,
@@ -387,8 +431,8 @@ class TaskService {
               relationships: metadata.relationships || [],
               milestones: metadata.milestones || [],
               position: metadata.position,
-              ...updates
-            }
+              ...updates,
+            },
           };
         }
 
@@ -483,7 +527,7 @@ class TaskService {
       }
 
       const deletedTasks = result.data.todoList.todos
-        .map(todo => {
+        .map((todo) => {
           const { description, metadata } = parseTaskText(todo.text);
           return {
             id: todo.id,
@@ -492,7 +536,7 @@ class TaskService {
             status: todo.done ? 'Done' : 'In Progress',
             dueDate: todo.duedAt,
             startDate: todo.startedAt,
-            tags: todo.tags?.map(t => t.title) || [],
+            tags: todo.tags?.map((t) => t.title) || [],
             position: metadata.position || { x: 0, y: 0 },
             createdAt: todo.createdAt,
             updatedAt: todo.updatedAt,
@@ -502,10 +546,10 @@ class TaskService {
             activities: metadata.activities || [],
             resources: metadata.resources || {},
             relationships: metadata.relationships || [],
-            milestones: metadata.milestones || []
+            milestones: metadata.milestones || [],
           };
         })
-        .filter(task => task.deletedAt);
+        .filter((task) => task.deletedAt);
 
       return { success: true, data: deletedTasks };
     } catch (error) {
@@ -526,9 +570,7 @@ class TaskService {
       if (olderThanDays !== null) {
         const cutoffDate = new Date();
         cutoffDate.setDate(cutoffDate.getDate() - olderThanDays);
-        tasksToDelete = tasksToDelete.filter(task =>
-          new Date(task.deletedAt) < cutoffDate
-        );
+        tasksToDelete = tasksToDelete.filter((task) => new Date(task.deletedAt) < cutoffDate);
       }
 
       const results = [];
@@ -540,9 +582,9 @@ class TaskService {
       return {
         success: true,
         data: {
-          deleted: results.filter(r => r.success).length,
-          failed: results.filter(r => !r.success).length
-        }
+          deleted: results.filter((r) => r.success).length,
+          failed: results.filter((r) => !r.success).length,
+        },
       };
     } catch (error) {
       console.error('Error emptying trash:', error);

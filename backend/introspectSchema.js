@@ -70,23 +70,24 @@ async function introspectSchema() {
     const queryFields = data.__schema.queryType.fields;
 
     // Filter for task/item/project related queries
-    const relevantQueries = queryFields.filter(field =>
-      field.name.toLowerCase().includes('task') ||
-      field.name.toLowerCase().includes('item') ||
-      field.name.toLowerCase().includes('project') ||
-      field.name.toLowerCase().includes('workspace') ||
-      field.name.toLowerCase().includes('card') ||
-      field.name.toLowerCase().includes('todo')
+    const relevantQueries = queryFields.filter(
+      (field) =>
+        field.name.toLowerCase().includes('task') ||
+        field.name.toLowerCase().includes('item') ||
+        field.name.toLowerCase().includes('project') ||
+        field.name.toLowerCase().includes('workspace') ||
+        field.name.toLowerCase().includes('card') ||
+        field.name.toLowerCase().includes('todo')
     );
 
     console.log('Relevant queries found:', relevantQueries.length);
-    relevantQueries.forEach(field => {
+    relevantQueries.forEach((field) => {
       console.log(`\n- ${field.name}`);
       if (field.description) console.log(`  Description: ${field.description}`);
       console.log(`  Returns: ${field.type.name || field.type.ofType?.name}`);
       if (field.args.length > 0) {
         console.log('  Arguments:');
-        field.args.forEach(arg => {
+        field.args.forEach((arg) => {
           console.log(`    - ${arg.name}: ${arg.type.name || arg.type.ofType?.name}`);
         });
       }
@@ -94,27 +95,28 @@ async function introspectSchema() {
 
     // Also show all available queries
     console.log('\n\n=== ALL Available Queries ===\n');
-    queryFields.forEach(field => {
+    queryFields.forEach((field) => {
       console.log(`- ${field.name} (returns ${field.type.name || field.type.ofType?.name})`);
     });
 
     // Look for types that might be relevant
     console.log('\n\n=== Relevant Types ===\n');
-    const relevantTypes = data.__schema.types.filter(type =>
-      !type.name.startsWith('__') &&
-      (type.name.toLowerCase().includes('task') ||
-       type.name.toLowerCase().includes('item') ||
-       type.name.toLowerCase().includes('project') ||
-       type.name.toLowerCase().includes('workspace') ||
-       type.name.toLowerCase().includes('card'))
+    const relevantTypes = data.__schema.types.filter(
+      (type) =>
+        !type.name.startsWith('__') &&
+        (type.name.toLowerCase().includes('task') ||
+          type.name.toLowerCase().includes('item') ||
+          type.name.toLowerCase().includes('project') ||
+          type.name.toLowerCase().includes('workspace') ||
+          type.name.toLowerCase().includes('card'))
     );
 
-    relevantTypes.forEach(type => {
+    relevantTypes.forEach((type) => {
       console.log(`\n${type.name} (${type.kind})`);
       if (type.description) console.log(`  ${type.description}`);
       if (type.fields && type.fields.length > 0) {
         console.log('  Fields:');
-        type.fields.slice(0, 10).forEach(field => {
+        type.fields.slice(0, 10).forEach((field) => {
           console.log(`    - ${field.name}: ${field.type.name || field.type.ofType?.name}`);
         });
         if (type.fields.length > 10) {
@@ -122,7 +124,6 @@ async function introspectSchema() {
         }
       }
     });
-
   } catch (error) {
     console.error('Error introspecting schema:', error.message);
     if (error.response) {

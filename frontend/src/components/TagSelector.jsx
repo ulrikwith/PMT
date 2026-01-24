@@ -40,7 +40,7 @@ export default function TagSelector({ selectedTags, onChange }) {
 
   const toggleTag = (tagName) => {
     if (selectedTags.includes(tagName)) {
-      onChange(selectedTags.filter(t => t !== tagName));
+      onChange(selectedTags.filter((t) => t !== tagName));
     } else {
       onChange([...selectedTags, tagName]);
     }
@@ -49,45 +49,100 @@ export default function TagSelector({ selectedTags, onChange }) {
   // Helper to determine tag color class
   const getTagClass = (tagName, isSelected) => {
     const lower = tagName.toLowerCase();
-    const baseClass = "inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border ";
+    const baseClass =
+      'inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all cursor-pointer border ';
 
     // Helper for groups
-    const isContent = ['substack', 'newsletter', 'books'].some(t => lower.includes(t));
-    const isPractice = ['practice', 'stone', 'walk', 'b2b'].some(t => lower.includes(t));
-    const isCommunity = ['community', 'mission', 'development', 'first30'].some(t => lower.includes(t));
-    const isMarketing = ['marketing', 'bopa', 'website'].some(t => lower.includes(t));
-    const isAdmin = ['admin', 'planning', 'accounting', 'infra'].some(t => lower.includes(t));
+    const isContent = ['substack', 'newsletter', 'books'].some((t) => lower.includes(t));
+    const isPractice = ['practice', 'stone', 'walk', 'b2b'].some((t) => lower.includes(t));
+    const isCommunity = ['community', 'mission', 'development', 'first30'].some((t) =>
+      lower.includes(t)
+    );
+    const isMarketing = ['marketing', 'bopa', 'website'].some((t) => lower.includes(t));
+    const isAdmin = ['admin', 'planning', 'accounting', 'infra'].some((t) => lower.includes(t));
 
     if (isSelected) {
-      if (lower.includes('substack')) return baseClass + "bg-orange-500/20 text-orange-500 border-orange-500/40 shadow-[0_0_10px_rgba(255,103,25,0.1)]";
-      if (lower.includes('newsletter') || lower.includes('content')) return baseClass + "bg-blue-500/20 text-blue-500 border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.1)]";
-      if (lower.includes('books')) return baseClass + "bg-indigo-500/20 text-indigo-500 border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.1)]";
-      
-      if (isPractice) return baseClass + "bg-emerald-500/20 text-emerald-500 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.1)]";
-      if (isAdmin) return baseClass + "bg-purple-500/20 text-purple-500 border-purple-500/40 shadow-[0_0_10px_rgba(139,92,246,0.1)]";
-      if (isMarketing) return baseClass + "bg-amber-500/20 text-amber-500 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]";
-      if (isCommunity) return baseClass + "bg-pink-500/20 text-pink-500 border-pink-500/40 shadow-[0_0_10px_rgba(236,72,153,0.1)]";
-      
-      return baseClass + "bg-slate-600 text-white border-slate-500";
+      if (lower.includes('substack'))
+        return (
+          baseClass +
+          'bg-orange-500/20 text-orange-500 border-orange-500/40 shadow-[0_0_10px_rgba(255,103,25,0.1)]'
+        );
+      if (lower.includes('newsletter') || lower.includes('content'))
+        return (
+          baseClass +
+          'bg-blue-500/20 text-blue-500 border-blue-500/40 shadow-[0_0_10px_rgba(59,130,246,0.1)]'
+        );
+      if (lower.includes('books'))
+        return (
+          baseClass +
+          'bg-indigo-500/20 text-indigo-500 border-indigo-500/40 shadow-[0_0_10px_rgba(99,102,241,0.1)]'
+        );
+
+      if (isPractice)
+        return (
+          baseClass +
+          'bg-emerald-500/20 text-emerald-500 border-emerald-500/40 shadow-[0_0_10px_rgba(16,185,129,0.1)]'
+        );
+      if (isAdmin)
+        return (
+          baseClass +
+          'bg-purple-500/20 text-purple-500 border-purple-500/40 shadow-[0_0_10px_rgba(139,92,246,0.1)]'
+        );
+      if (isMarketing)
+        return (
+          baseClass +
+          'bg-amber-500/20 text-amber-500 border-amber-500/40 shadow-[0_0_10px_rgba(245,158,11,0.1)]'
+        );
+      if (isCommunity)
+        return (
+          baseClass +
+          'bg-pink-500/20 text-pink-500 border-pink-500/40 shadow-[0_0_10px_rgba(236,72,153,0.1)]'
+        );
+
+      return baseClass + 'bg-slate-600 text-white border-slate-500';
     } else {
-      if (lower.includes('substack')) return baseClass + "bg-orange-500/5 text-orange-500/70 border-orange-500/10 hover:bg-orange-500/10";
-      if (lower.includes('newsletter') || lower.includes('content')) return baseClass + "bg-blue-500/5 text-blue-500/70 border-blue-500/10 hover:bg-blue-500/10";
-      if (lower.includes('books')) return baseClass + "bg-indigo-500/5 text-indigo-500/70 border-indigo-500/10 hover:bg-indigo-500/10";
-      
-      if (isPractice) return baseClass + "bg-emerald-500/5 text-emerald-500/70 border-emerald-500/10 hover:bg-emerald-500/10";
-      if (isAdmin) return baseClass + "bg-purple-500/5 text-purple-500/70 border-purple-500/10 hover:bg-purple-500/10";
-      if (isMarketing) return baseClass + "bg-amber-500/5 text-amber-500/70 border-amber-500/10 hover:bg-amber-500/10";
-      if (isCommunity) return baseClass + "bg-pink-500/5 text-pink-500/70 border-pink-500/10 hover:bg-pink-500/10";
-      
-      return baseClass + "bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700/50 hover:text-slate-200";
+      if (lower.includes('substack'))
+        return (
+          baseClass +
+          'bg-orange-500/5 text-orange-500/70 border-orange-500/10 hover:bg-orange-500/10'
+        );
+      if (lower.includes('newsletter') || lower.includes('content'))
+        return baseClass + 'bg-blue-500/5 text-blue-500/70 border-blue-500/10 hover:bg-blue-500/10';
+      if (lower.includes('books'))
+        return (
+          baseClass +
+          'bg-indigo-500/5 text-indigo-500/70 border-indigo-500/10 hover:bg-indigo-500/10'
+        );
+
+      if (isPractice)
+        return (
+          baseClass +
+          'bg-emerald-500/5 text-emerald-500/70 border-emerald-500/10 hover:bg-emerald-500/10'
+        );
+      if (isAdmin)
+        return (
+          baseClass +
+          'bg-purple-500/5 text-purple-500/70 border-purple-500/10 hover:bg-purple-500/10'
+        );
+      if (isMarketing)
+        return (
+          baseClass + 'bg-amber-500/5 text-amber-500/70 border-amber-500/10 hover:bg-amber-500/10'
+        );
+      if (isCommunity)
+        return baseClass + 'bg-pink-500/5 text-pink-500/70 border-pink-500/10 hover:bg-pink-500/10';
+
+      return (
+        baseClass +
+        'bg-slate-800/50 text-slate-400 border-slate-700 hover:bg-slate-700/50 hover:text-slate-200'
+      );
     }
   };
 
   return (
     <div className="flex flex-wrap gap-2 items-center">
       {loading && <span className="text-xs text-slate-500">Loading tags...</span>}
-      
-      {availableTags.map(tag => (
+
+      {availableTags.map((tag) => (
         <button
           key={tag.name || tag} // Handle object or string
           type="button"
@@ -106,18 +161,18 @@ export default function TagSelector({ selectedTags, onChange }) {
             value={newTagName}
             onChange={(e) => setNewTagName(e.target.value)}
             onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    handleCreateTag();
-                }
-                if (e.key === 'Escape') {
-                    setIsCreating(false);
-                }
+              if (e.key === 'Enter') {
+                e.preventDefault();
+                handleCreateTag();
+              }
+              if (e.key === 'Escape') {
+                setIsCreating(false);
+              }
             }}
             placeholder="New tag..."
             autoFocus
           />
-          <button 
+          <button
             type="button"
             onClick={() => setIsCreating(false)}
             className="p-1 text-slate-400 hover:text-white"

@@ -23,7 +23,7 @@ class CustomFieldService {
   async _initialize() {
     // 1. Fetch existing fields
     const projectId = await coreClient.getDefaultProjectId();
-    
+
     // We try to fetch custom fields via the project
     const query = `
       query GetProjectFields($projectId: String!) {
@@ -35,11 +35,11 @@ class CustomFieldService {
         }
       }
     `;
-    
+
     const result = await coreClient.query(query, { projectId });
-    
+
     if (result.success && result.data.project.customFields) {
-      result.data.project.customFields.forEach(cf => {
+      result.data.project.customFields.forEach((cf) => {
         this.fieldCache.set(cf.name, cf.id);
       });
     }
@@ -54,7 +54,7 @@ class CustomFieldService {
 
     console.log(`Creating custom field: ${name}...`);
     const projectId = await coreClient.getDefaultProjectId();
-    
+
     const mutation = `
       mutation CreateCF($input: CreateCustomFieldInput!) {
         createCustomField(input: $input) {
@@ -68,7 +68,7 @@ class CustomFieldService {
     const input = {
       name,
       type,
-      referenceProjectId: projectId // Associate with current project
+      referenceProjectId: projectId, // Associate with current project
     };
 
     const result = await coreClient.query(mutation, { input });
@@ -78,7 +78,7 @@ class CustomFieldService {
       console.log(`Created CF ${name}: ${result.data.createCustomField.id}`);
     } else {
       console.error(`Failed to create CF ${name}:`, result.error);
-      // Fallback: maybe it exists but wasn't returned in query? 
+      // Fallback: maybe it exists but wasn't returned in query?
       // Proceeding without it will cause errors later.
     }
   }
@@ -104,7 +104,7 @@ class CustomFieldService {
     const input = {
       todoId,
       customFieldId: fieldId,
-      text: textValue
+      text: textValue,
     };
 
     return coreClient.query(mutation, { input });

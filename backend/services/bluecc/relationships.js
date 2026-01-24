@@ -11,11 +11,68 @@ class RelationshipService {
     return `rel-${timestamp}-${randomBytes}`;
   }
 
+  /**
+   * Check if creating a relationship would create a circular dependency
+   */
+  async detectCircularDependency(fromTaskId, toTaskId, allTasks) {
+    const visited = new Set();
+    const queue = [toTaskId];
+
+    while (queue.length > 0) {
+      const currentId = queue.shift();
+
+      if (currentId === fromTaskId) {
+        return true; // Circular dependency detected
+      }
+
+      if (visited.has(currentId)) {
+        continue;
+      }
+
+      visited.add(currentId);
+
+      // Find all relationships from currentId
+      const currentTask = allTasks.find((t) => t.id === currentId);
+      if (currentTask && currentTask.relationships) {
+        for (const rel of currentTask.relationships) {
+          queue.push(rel.toTaskId);
+        }
+      }
+    }
+
+    return false; // No circular dependency
+  }
+
   async createTaskRelationship(fromTaskId, toTaskId, type, label = null) {
     try {
       // Validate inputs
       if (!fromTaskId || !toTaskId || !type) {
         return { success: false, error: 'Missing required fields: fromTaskId, toTaskId, or type' };
+      }
+
+      // Prevent self-referencing
+      if (fromTaskId === toTaskId) {
+        return { success: false, error: 'Cannot create relationship to self' };
+      }
+
+      // 1. Get current task
+      const tasksRes = await taskService.getTasks();
+      if (!tasksRes.success) return { success: false, error: tasksRes.error };
+
+      const tasks = tasksRes.data;
+      const fromTask = tasks.find((t) => t.id === fromTaskId);
+      if (!fromTask) return { success: false, error: 'Source task not found' };
+
+      const toTask = tasks.find((t) => t.id === toTaskId);
+      if (!toTask) return { success: false, error: 'Target task not found' };
+
+      // Check for circular dependencies
+      const wouldCreateCycle = await this.detectCircularDependency(fromTaskId, toTaskId, tasks);
+      if (wouldCreateCycle) {
+        return {
+          success: false,
+          error: 'Cannot create relationship: would create circular dependency',
+        };
       }
 
       const relId = this.generateRelationshipId();
@@ -25,15 +82,8 @@ class RelationshipService {
         toTaskId,
         type,
         label,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-
-      // 1. Get current task
-      const tasksRes = await taskService.getTasks();
-      if (!tasksRes.success) return { success: false, error: tasksRes.error };
-      
-      const fromTask = tasksRes.data.find(t => t.id === fromTaskId);
-      if (!fromTask) return { success: false, error: 'Source task not found' };
 
       // 2. Add relationship to array
       // Note: getTasks now parses from custom fields, so 'relationships' property is accurate
@@ -79,9 +129,7 @@ class RelationshipService {
         return allRels;
       }
 
-      const filtered = allRels.data.filter(
-        r => r.fromTaskId === taskId || r.toTaskId === taskId
-      );
+      const filtered = allRels.data.filter((r) => r.fromTaskId === taskId || r.toTaskId === taskId);
 
       return { success: true, data: filtered };
     } catch (error) {
@@ -101,7 +149,7 @@ class RelationshipService {
       // Find the task that holds this relationship
       for (const task of tasks) {
         if (task.relationships) {
-          relIndex = task.relationships.findIndex(r => r.id === relationshipId);
+          relIndex = task.relationships.findIndex((r) => r.id === relationshipId);
           if (relIndex !== -1) {
             targetTask = task;
             break;

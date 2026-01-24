@@ -40,9 +40,7 @@ export default function ConnectionModal({ connection, onConfirm, onCancel }) {
     <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 animate-in fade-in duration-200">
       <div className="glass-panel rounded-2xl p-8 max-w-md w-full border border-white/10 shadow-2xl">
         <h2 className="text-2xl font-bold text-white mb-2">Define Connection</h2>
-        <p className="text-sm text-slate-400 mb-6">
-          How do these Works relate to each other?
-        </p>
+        <p className="text-sm text-slate-400 mb-6">How do these Works relate to each other?</p>
 
         {/* Connection Type Selection */}
         <div className="space-y-3 mb-6">
@@ -61,7 +59,10 @@ export default function ConnectionModal({ connection, onConfirm, onCancel }) {
                 <div className="flex items-center gap-3">
                   <div
                     className="w-10 h-10 rounded-lg flex items-center justify-center"
-                    style={{ backgroundColor: `${type.color}20`, border: `1px solid ${type.color}40` }}
+                    style={{
+                      backgroundColor: `${type.color}20`,
+                      border: `1px solid ${type.color}40`,
+                    }}
                   >
                     <Icon size={20} style={{ color: type.color }} />
                   </div>

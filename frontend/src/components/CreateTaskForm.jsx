@@ -6,7 +6,7 @@ const STEPS = [
   { id: 1, title: 'Placement', icon: Layers, description: 'Select Dimension' },
   { id: 2, title: 'Tagging', icon: Tag, description: 'Add Tags' },
   { id: 3, title: 'Details', icon: FileText, description: 'Resources & Info' },
-  { id: 4, title: 'Dates', icon: Calendar, description: 'Schedule' }
+  { id: 4, title: 'Dates', icon: Calendar, description: 'Schedule' },
 ];
 
 const DIMENSIONS_STRUCTURE = [
@@ -17,8 +17,8 @@ const DIMENSIONS_STRUCTURE = [
     children: [
       { id: 'substack', label: 'Substack' },
       { id: 'newsletter', label: 'Newsletter' },
-      { id: 'books', label: 'Books' }
-    ]
+      { id: 'books', label: 'Books' },
+    ],
   },
   {
     id: 'practice',
@@ -27,8 +27,8 @@ const DIMENSIONS_STRUCTURE = [
     children: [
       { id: 'stone', label: 'Stone' },
       { id: 'walk', label: 'Walk' },
-      { id: 'b2b', label: 'B2B' }
-    ]
+      { id: 'b2b', label: 'B2B' },
+    ],
   },
   {
     id: 'community',
@@ -37,8 +37,8 @@ const DIMENSIONS_STRUCTURE = [
     children: [
       { id: 'mission', label: 'Mission' },
       { id: 'development', label: 'Development' },
-      { id: 'first30', label: 'First 30' }
-    ]
+      { id: 'first30', label: 'First 30' },
+    ],
   },
   {
     id: 'marketing',
@@ -47,8 +47,8 @@ const DIMENSIONS_STRUCTURE = [
     children: [
       { id: 'bopa', label: 'BOPA' },
       { id: 'website', label: 'Website' },
-      { id: 'marketing-other', label: 'Other' }
-    ]
+      { id: 'marketing-other', label: 'Other' },
+    ],
   },
   {
     id: 'admin',
@@ -57,9 +57,9 @@ const DIMENSIONS_STRUCTURE = [
     children: [
       { id: 'planning', label: 'Planning' },
       { id: 'accounting', label: 'Accounting' },
-      { id: 'admin-other', label: 'Other' }
-    ]
-  }
+      { id: 'admin-other', label: 'Other' },
+    ],
+  },
 ];
 
 export default function CreateTaskForm({ onSubmit }) {
@@ -96,17 +96,19 @@ export default function CreateTaskForm({ onSubmit }) {
 
   const handleSubmit = async () => {
     if (!title.trim()) return;
-    
+
     setIsSubmitting(true);
     try {
       // Auto-add dimension tags if not already present
-      const finalTags = [...new Set([...tags, selectedDimension, selectedSubDimension].filter(Boolean))];
-      
-      await onSubmit({ 
-        title, 
-        description, 
+      const finalTags = [
+        ...new Set([...tags, selectedDimension, selectedSubDimension].filter(Boolean)),
+      ];
+
+      await onSubmit({
+        title,
+        description,
         tags: finalTags,
-        dueDate
+        dueDate,
       });
       resetForm();
     } finally {
@@ -121,7 +123,7 @@ export default function CreateTaskForm({ onSubmit }) {
         className="w-full p-4 mb-6 border-2 border-dashed border-slate-700 rounded-xl text-slate-500 hover:border-blue-500/50 hover:text-blue-500 transition-all flex items-center justify-center gap-2 group"
       >
         <div className="w-8 h-8 rounded-full bg-slate-800 flex items-center justify-center group-hover:bg-blue-500/10 transition-colors">
-             <Plus size={20} />
+          <Plus size={20} />
         </div>
         <span className="font-medium">Add New Task</span>
       </button>
@@ -133,30 +135,42 @@ export default function CreateTaskForm({ onSubmit }) {
       {STEPS.map((s, i) => {
         const isActive = step === s.id;
         const isCompleted = step > s.id;
-        
+
         return (
           <div key={s.id} className="flex flex-col items-center relative z-10">
-            <div className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all ${
-              isActive ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30' : 
-              isCompleted ? 'bg-emerald-500 text-white' : 'bg-slate-800 text-slate-500'
-            }`}>
+            <div
+              className={`w-8 h-8 rounded-full flex items-center justify-center mb-2 transition-all ${
+                isActive
+                  ? 'bg-blue-500 text-white shadow-lg shadow-blue-500/30'
+                  : isCompleted
+                    ? 'bg-emerald-500 text-white'
+                    : 'bg-slate-800 text-slate-500'
+              }`}
+            >
               <s.icon size={14} />
             </div>
-            <span className={`text-[10px] font-medium uppercase tracking-wider ${isActive ? 'text-blue-400' : 'text-slate-600'}`}>
+            <span
+              className={`text-[10px] font-medium uppercase tracking-wider ${isActive ? 'text-blue-400' : 'text-slate-600'}`}
+            >
               {s.title}
             </span>
-            
+
             {/* Connecting Line */}
             {i < STEPS.length - 1 && (
-              <div className="absolute top-4 left-1/2 w-full h-0.5 bg-slate-800 -z-10" style={{ width: 'calc(100% * 6)' }}> {/* Hacky width, ideally grid layout */}
+              <div
+                className="absolute top-4 left-1/2 w-full h-0.5 bg-slate-800 -z-10"
+                style={{ width: 'calc(100% * 6)' }}
+              >
+                {' '}
+                {/* Hacky width, ideally grid layout */}
               </div>
             )}
           </div>
         );
       })}
-      
+
       {/* Background Line Container */}
-      <div className="absolute top-[84px] left-10 right-10 h-0.5 bg-slate-800 -z-0" /> 
+      <div className="absolute top-[84px] left-10 right-10 h-0.5 bg-slate-800 -z-0" />
       {/* Note: Absolute positioning for lines in steps is tricky without strict widths. 
           Simplified visual for now: just icons. 
       */}
@@ -166,14 +180,14 @@ export default function CreateTaskForm({ onSubmit }) {
   const renderStep1 = () => (
     <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
       <h4 className="text-lg font-medium text-white mb-4">Where does this belong?</h4>
-      
+
       <div className="grid grid-cols-2 gap-3">
-        {DIMENSIONS_STRUCTURE.map(dim => (
+        {DIMENSIONS_STRUCTURE.map((dim) => (
           <button
             key={dim.id}
             onClick={() => {
-                setSelectedDimension(dim.id);
-                setSelectedSubDimension(null); // Reset sub
+              setSelectedDimension(dim.id);
+              setSelectedSubDimension(null); // Reset sub
             }}
             className={`p-4 rounded-xl border text-left transition-all ${
               selectedDimension === dim.id
@@ -181,8 +195,10 @@ export default function CreateTaskForm({ onSubmit }) {
                 : 'bg-slate-800/40 border-white/5 hover:bg-slate-800/80 hover:border-white/10'
             }`}
           >
-            <div className={`text-sm font-semibold mb-1 ${selectedDimension === dim.id ? 'text-blue-400' : 'text-slate-300'}`}>
-                {dim.label}
+            <div
+              className={`text-sm font-semibold mb-1 ${selectedDimension === dim.id ? 'text-blue-400' : 'text-slate-300'}`}
+            >
+              {dim.label}
             </div>
           </button>
         ))}
@@ -190,22 +206,22 @@ export default function CreateTaskForm({ onSubmit }) {
 
       {selectedDimension && (
         <div className="mt-6 pt-4 border-t border-white/5">
-            <h5 className="text-sm font-medium text-slate-400 mb-3">Select Category</h5>
-            <div className="flex flex-wrap gap-2">
-                {DIMENSIONS_STRUCTURE.find(d => d.id === selectedDimension)?.children.map(sub => (
-                    <button
-                        key={sub.id}
-                        onClick={() => setSelectedSubDimension(sub.id)}
-                        className={`px-4 py-2 rounded-lg text-sm border transition-all ${
-                            selectedSubDimension === sub.id
-                                ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
-                                : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
-                        }`}
-                    >
-                        {sub.label}
-                    </button>
-                ))}
-            </div>
+          <h5 className="text-sm font-medium text-slate-400 mb-3">Select Category</h5>
+          <div className="flex flex-wrap gap-2">
+            {DIMENSIONS_STRUCTURE.find((d) => d.id === selectedDimension)?.children.map((sub) => (
+              <button
+                key={sub.id}
+                onClick={() => setSelectedSubDimension(sub.id)}
+                className={`px-4 py-2 rounded-lg text-sm border transition-all ${
+                  selectedSubDimension === sub.id
+                    ? 'bg-emerald-500/20 text-emerald-400 border-emerald-500/50'
+                    : 'bg-slate-800 text-slate-400 border-slate-700 hover:border-slate-500'
+                }`}
+              >
+                {sub.label}
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>
@@ -215,9 +231,14 @@ export default function CreateTaskForm({ onSubmit }) {
     <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
       <h4 className="text-lg font-medium text-white mb-2">Add Tags</h4>
       <p className="text-sm text-slate-400 mb-4">
-          Selected: <span className="text-blue-400">{selectedDimension}</span> {selectedSubDimension && <span>/ <span className="text-emerald-400">{selectedSubDimension}</span></span>}
+        Selected: <span className="text-blue-400">{selectedDimension}</span>{' '}
+        {selectedSubDimension && (
+          <span>
+            / <span className="text-emerald-400">{selectedSubDimension}</span>
+          </span>
+        )}
       </p>
-      
+
       <div className="bg-slate-900/50 p-4 rounded-xl border border-white/5">
         <TagSelector selectedTags={tags} onChange={setTags} />
       </div>
@@ -227,7 +248,7 @@ export default function CreateTaskForm({ onSubmit }) {
   const renderStep3 = () => (
     <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
       <h4 className="text-lg font-medium text-white mb-4">Task Details</h4>
-      
+
       <div>
         <label className="block text-xs font-medium text-slate-500 mb-1.5">Task Title</label>
         <input
@@ -239,9 +260,11 @@ export default function CreateTaskForm({ onSubmit }) {
           autoFocus
         />
       </div>
-      
+
       <div>
-        <label className="block text-xs font-medium text-slate-500 mb-1.5">Resources & Description</label>
+        <label className="block text-xs font-medium text-slate-500 mb-1.5">
+          Resources & Description
+        </label>
         <textarea
           className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-slate-200 placeholder-slate-500 focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all resize-none"
           value={description}
@@ -256,7 +279,7 @@ export default function CreateTaskForm({ onSubmit }) {
   const renderStep4 = () => (
     <div className="space-y-4 animate-in slide-in-from-right-4 duration-200">
       <h4 className="text-lg font-medium text-white mb-4">Schedule</h4>
-      
+
       <div>
         <label className="block text-xs font-medium text-slate-500 mb-1.5">Due Date</label>
         <input
@@ -266,12 +289,12 @@ export default function CreateTaskForm({ onSubmit }) {
           onChange={(e) => setDueDate(e.target.value)}
         />
       </div>
-      
+
       <div className="mt-6 p-4 bg-blue-500/10 rounded-lg border border-blue-500/20">
-          <h5 className="text-sm font-semibold text-blue-400 mb-1">Ready to create?</h5>
-          <p className="text-xs text-blue-300/80">
-              Creating task "{title}" in {selectedDimension}
-          </p>
+        <h5 className="text-sm font-semibold text-blue-400 mb-1">Ready to create?</h5>
+        <p className="text-xs text-blue-300/80">
+          Creating task "{title}" in {selectedDimension}
+        </p>
       </div>
     </div>
   );
@@ -289,27 +312,38 @@ export default function CreateTaskForm({ onSubmit }) {
 
         {/* Steps */}
         <div className="px-6 pt-6">
-             <div className="flex justify-between mb-6 relative">
-                {/* Connecting Line Background */}
-                <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-0 -translate-y-1/2"></div>
-                
-                {STEPS.map((s) => {
-                    const isActive = step === s.id;
-                    const isCompleted = step > s.id;
-                    return (
-                        <div key={s.id} className="relative z-10 bg-slate-950 px-2 flex flex-col items-center">
-                            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 ${
-                                isActive ? 'border-blue-500 bg-slate-900 text-blue-500' :
-                                isCompleted ? 'border-emerald-500 bg-emerald-500 text-white' :
-                                'border-slate-800 bg-slate-900 text-slate-600'
-                            }`}>
-                                <s.icon size={14} />
-                            </div>
-                            <span className={`text-[10px] mt-1 font-medium uppercase ${isActive ? 'text-blue-500' : 'text-slate-600'}`}>{s.title}</span>
-                        </div>
-                    );
-                })}
-             </div>
+          <div className="flex justify-between mb-6 relative">
+            {/* Connecting Line Background */}
+            <div className="absolute top-1/2 left-0 w-full h-0.5 bg-slate-800 -z-0 -translate-y-1/2"></div>
+
+            {STEPS.map((s) => {
+              const isActive = step === s.id;
+              const isCompleted = step > s.id;
+              return (
+                <div
+                  key={s.id}
+                  className="relative z-10 bg-slate-950 px-2 flex flex-col items-center"
+                >
+                  <div
+                    className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 ${
+                      isActive
+                        ? 'border-blue-500 bg-slate-900 text-blue-500'
+                        : isCompleted
+                          ? 'border-emerald-500 bg-emerald-500 text-white'
+                          : 'border-slate-800 bg-slate-900 text-slate-600'
+                    }`}
+                  >
+                    <s.icon size={14} />
+                  </div>
+                  <span
+                    className={`text-[10px] mt-1 font-medium uppercase ${isActive ? 'text-blue-500' : 'text-slate-600'}`}
+                  >
+                    {s.title}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
         </div>
 
         {/* Body */}
@@ -322,32 +356,34 @@ export default function CreateTaskForm({ onSubmit }) {
 
         {/* Footer */}
         <div className="px-6 py-4 border-t border-white/5 bg-slate-900/50 flex justify-between">
-          <button 
+          <button
             onClick={handleBack}
             disabled={step === 1}
             className={`px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 ${
-                step === 1 ? 'opacity-0 cursor-default' : 'text-slate-400 hover:text-white hover:bg-white/5'
+              step === 1
+                ? 'opacity-0 cursor-default'
+                : 'text-slate-400 hover:text-white hover:bg-white/5'
             }`}
           >
             <ArrowLeft size={16} /> Back
           </button>
-          
+
           {step < 4 ? (
-             <button 
-                onClick={handleNext}
-                disabled={step === 1 && !selectedDimension} // Require placement
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
-             >
-                Next <ArrowRight size={16} />
-             </button>
+            <button
+              onClick={handleNext}
+              disabled={step === 1 && !selectedDimension} // Require placement
+              className="px-6 py-2 bg-blue-600 text-white rounded-lg text-sm font-medium hover:bg-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all"
+            >
+              Next <ArrowRight size={16} />
+            </button>
           ) : (
-             <button 
-                onClick={handleSubmit}
-                disabled={!title.trim() || isSubmitting}
-                className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
-             >
-                {isSubmitting ? 'Creating...' : 'Create Task'} <Plus size={16} />
-             </button>
+            <button
+              onClick={handleSubmit}
+              disabled={!title.trim() || isSubmitting}
+              className="px-6 py-2 bg-emerald-600 text-white rounded-lg text-sm font-medium hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2 transition-all shadow-lg shadow-emerald-500/20"
+            >
+              {isSubmitting ? 'Creating...' : 'Create Task'} <Plus size={16} />
+            </button>
           )}
         </div>
       </div>

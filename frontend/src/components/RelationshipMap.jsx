@@ -19,7 +19,7 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
     acc[type].push({
       ...rel,
       otherTaskId: otherId,
-      direction: isFrom ? 'outgoing' : 'incoming'
+      direction: isFrom ? 'outgoing' : 'incoming',
     });
     return acc;
   }, {});
@@ -31,27 +31,29 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
       return;
     }
 
-    const related = relationships.map(rel => {
-      const otherId = rel.fromTaskId === taskId ? rel.toTaskId : rel.fromTaskId;
-      const task = tasks.find(t => t.id === otherId);
-      if (!task) return null;
+    const related = relationships
+      .map((rel) => {
+        const otherId = rel.fromTaskId === taskId ? rel.toTaskId : rel.fromTaskId;
+        const task = tasks.find((t) => t.id === otherId);
+        if (!task) return null;
 
-      return {
-        relationshipId: rel.id,
-        ...task,
-        relationshipType: rel.type,
-        direction: rel.fromTaskId === taskId ? 'outgoing' : 'incoming'
-      };
-    }).filter(t => t !== null);
+        return {
+          relationshipId: rel.id,
+          ...task,
+          relationshipType: rel.type,
+          direction: rel.fromTaskId === taskId ? 'outgoing' : 'incoming',
+        };
+      })
+      .filter((t) => t !== null);
 
     setRelatedTasks(related);
   }, [relationships, taskId, tasks]);
 
   const handleDelete = async (relId) => {
-      if (window.confirm('Remove this relationship?')) {
-          await api.deleteRelationship(relId);
-          onUpdate && onUpdate();
-      }
+    if (window.confirm('Remove this relationship?')) {
+      await api.deleteRelationship(relId);
+      onUpdate && onUpdate();
+    }
   };
 
   if (relationships.length === 0) return null;
@@ -62,7 +64,7 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
         <Link size={14} /> Related Tasks
       </h4>
 
-      {(
+      {
         <div className="space-y-3">
           {Object.entries(grouped).map(([type, rels]) => (
             <div key={type}>
@@ -70,37 +72,48 @@ export default function RelationshipMap({ taskId, relationships, onUpdate }) {
                 {type.replace('-', ' ')}
               </span>
               <div className="space-y-1">
-                {rels.map(rel => {
-                   const task = relatedTasks.find(t => t.id === rel.otherTaskId);
-                   if (!task) return null;
-                   
-                   return (
-                     <div key={rel.id} className="flex items-center justify-between group p-2 rounded hover:bg-white border border-transparent hover:border-slate-200 transition-all">
-                       <div className="flex items-center gap-2 overflow-hidden">
-                         <span className="text-slate-400">
-                           {rel.direction === 'outgoing' ? <ArrowRight size={12} /> : <ArrowRight size={12} className="rotate-180" />}
-                         </span>
-                         <span className="text-sm text-slate-700 truncate">{task.title}</span>
-                         <span className={`text-[10px] px-1.5 py-0.5 rounded-full ${
-                             task.status === 'Done' ? 'bg-green-100 text-green-700' : 'bg-slate-100 text-slate-600'
-                         }`}>
-                             {task.status}
-                         </span>
-                       </div>
-                       <button 
-                         onClick={() => handleDelete(rel.id)}
-                         className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
-                       >
-                         <Trash2 size={12} />
-                       </button>
-                     </div>
-                   );
+                {rels.map((rel) => {
+                  const task = relatedTasks.find((t) => t.id === rel.otherTaskId);
+                  if (!task) return null;
+
+                  return (
+                    <div
+                      key={rel.id}
+                      className="flex items-center justify-between group p-2 rounded hover:bg-white border border-transparent hover:border-slate-200 transition-all"
+                    >
+                      <div className="flex items-center gap-2 overflow-hidden">
+                        <span className="text-slate-400">
+                          {rel.direction === 'outgoing' ? (
+                            <ArrowRight size={12} />
+                          ) : (
+                            <ArrowRight size={12} className="rotate-180" />
+                          )}
+                        </span>
+                        <span className="text-sm text-slate-700 truncate">{task.title}</span>
+                        <span
+                          className={`text-[10px] px-1.5 py-0.5 rounded-full ${
+                            task.status === 'Done'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-slate-100 text-slate-600'
+                          }`}
+                        >
+                          {task.status}
+                        </span>
+                      </div>
+                      <button
+                        onClick={() => handleDelete(rel.id)}
+                        className="text-slate-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    </div>
+                  );
                 })}
               </div>
             </div>
           ))}
         </div>
-      )}
+      }
     </div>
   );
 }

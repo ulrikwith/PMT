@@ -8,16 +8,17 @@ export default function DimensionTabs({ activeDimension, onDimensionChange }) {
         {DIMENSIONS.map((dim) => {
           const Icon = dim.icon;
           const isActive = activeDimension === dim.id;
-          
+
           return (
             <button
               key={dim.id}
               onClick={() => onDimensionChange(dim.id)}
               className={`
                 px-4 py-2.5 rounded-lg font-medium text-sm transition-all flex items-center gap-2 whitespace-nowrap
-                ${isActive
-                  ? `bg-${dim.color}-500/10 border-2 border-${dim.color}-500/30 text-${dim.color}-500`
-                  : 'bg-slate-800/40 border border-white/10 text-slate-400 hover:text-white hover:border-white/20'
+                ${
+                  isActive
+                    ? `bg-${dim.color}-500/10 border-2 border-${dim.color}-500/30 text-${dim.color}-500`
+                    : 'bg-slate-800/40 border border-white/10 text-slate-400 hover:text-white hover:border-white/20'
                 }
               `}
             >

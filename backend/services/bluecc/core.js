@@ -172,7 +172,7 @@ class CoreClient {
       return { success: false, error: e.message };
     }
   }
-  
+
   formatDate(dateStr) {
     if (!dateStr) return null;
     if (dateStr.includes('T')) return dateStr;

@@ -6,7 +6,10 @@ const AuthContext = createContext();
 const API_URL = '/api/auth';
 
 // Google Client ID should be in env, using placeholder or passed from config
-const GOOGLE_CLIENT_ID = "YOUR_GOOGLE_CLIENT_ID"; // User needs to provide this
+const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // User needs to provide this
+
+// 🚧 TEMPORARY BYPASS - Set to true to disable authentication
+const BYPASS_AUTH = true;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -14,6 +17,13 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    // 🚧 BYPASS: Skip authentication when BYPASS_AUTH is enabled
+    if (BYPASS_AUTH) {
+      setUser({ id: 'bypass-user', email: 'user@local.dev', name: 'Local User' });
+      setLoading(false);
+      return;
+    }
+
     if (token) {
       // Decode token to get user info (simple version)
       // Ideally call /api/auth/me
@@ -42,7 +52,9 @@ export function AuthProvider({ children }) {
   };
 
   const googleLogin = async (credentialResponse) => {
-    const res = await axios.post(`${API_URL}/google`, { credential: credentialResponse.credential });
+    const res = await axios.post(`${API_URL}/google`, {
+      credential: credentialResponse.credential,
+    });
     setToken(res.data.token);
     localStorage.setItem('pmt_token', res.data.token);
     setUser(res.data.user);

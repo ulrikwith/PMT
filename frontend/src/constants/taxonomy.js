@@ -11,8 +11,8 @@ export const DIMENSIONS = [
       { id: 'substack', label: 'Substack' },
       { id: 'newsletter', label: 'Newsletter' },
       { id: 'stone', label: 'Stone' }, // Shared element
-      { id: 'other', label: 'Other' }
-    ]
+      { id: 'other', label: 'Other' },
+    ],
   },
   {
     id: 'practice',
@@ -23,8 +23,8 @@ export const DIMENSIONS = [
       { id: 'stone', label: 'Stone' }, // Shared element
       { id: 'walk', label: 'Walk' },
       { id: 'b2b', label: 'B2B' },
-      { id: 'other', label: 'Other' }
-    ]
+      { id: 'other', label: 'Other' },
+    ],
   },
   {
     id: 'community',
@@ -35,8 +35,8 @@ export const DIMENSIONS = [
       { id: 'mission', label: 'Mission' },
       { id: 'development', label: 'Development' },
       { id: 'first30', label: 'First 30' },
-      { id: 'other', label: 'Other' }
-    ]
+      { id: 'other', label: 'Other' },
+    ],
   },
   {
     id: 'marketing',
@@ -46,8 +46,8 @@ export const DIMENSIONS = [
     elements: [
       { id: 'bopa', label: 'BOPA' },
       { id: 'website', label: 'Website' },
-      { id: 'other', label: 'Other' }
-    ]
+      { id: 'other', label: 'Other' },
+    ],
   },
   {
     id: 'admin',
@@ -57,19 +57,19 @@ export const DIMENSIONS = [
     elements: [
       { id: 'planning', label: 'Planning' },
       { id: 'accounting', label: 'Accounting' },
-      { id: 'other', label: 'Other' }
-    ]
-  }
+      { id: 'other', label: 'Other' },
+    ],
+  },
 ];
 
 export const getDimensionConfig = (dimId) => {
-    if (!dimId) return null;
-    return DIMENSIONS.find(d => d.id === dimId.toLowerCase());
+  if (!dimId) return null;
+  return DIMENSIONS.find((d) => d.id === dimId.toLowerCase());
 };
 
 export const getElementLabel = (dimId, elementId) => {
-    const dim = getDimensionConfig(dimId);
-    if (!dim) return elementId;
-    const el = dim.elements.find(e => e.id === elementId?.toLowerCase() || e.label === elementId);
-    return el ? el.label : elementId;
+  const dim = getDimensionConfig(dimId);
+  if (!dim) return elementId;
+  const el = dim.elements.find((e) => e.id === elementId?.toLowerCase() || e.label === elementId);
+  return el ? el.label : elementId;
 };
