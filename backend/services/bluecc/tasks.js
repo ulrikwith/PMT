@@ -152,6 +152,7 @@ class TaskService {
           resources: metadata.resources || {},
           relationships,
           milestones,
+          sortOrder: metadata.sortOrder || 0,
         };
       });
 
@@ -194,6 +195,7 @@ class TaskService {
         activities: taskData.activities,
         resources: taskData.resources,
         position: taskData.position,
+        sortOrder: taskData.sortOrder,
       });
 
       const mutation = `
@@ -285,6 +287,7 @@ class TaskService {
           relationships: taskData.relationships || [],
           milestones: taskData.milestones || [],
           position: taskData.position || { x: 0, y: 0 },
+          sortOrder: taskData.sortOrder || 0,
           createdAt: todo.createdAt,
           updatedAt: todo.updatedAt,
         },
@@ -342,7 +345,8 @@ class TaskService {
           updates.resources !== undefined ||
           updates.position !== undefined ||
           updates.gridPosition !== undefined ||
-          updates.deletedAt !== undefined;
+          updates.deletedAt !== undefined ||
+          updates.sortOrder !== undefined;
 
         if (hasRichUpdates) {
           const currentQuery = `query GetTodo($id: String!) { todo(id: $id) { text } }`;
@@ -374,6 +378,8 @@ class TaskService {
                 : currentMetadata.gridPosition,
             deletedAt:
               updates.deletedAt !== undefined ? updates.deletedAt : currentMetadata.deletedAt,
+            sortOrder:
+              updates.sortOrder !== undefined ? updates.sortOrder : currentMetadata.sortOrder,
           };
 
           const mergedDescription =
@@ -431,6 +437,7 @@ class TaskService {
               relationships: metadata.relationships || [],
               milestones: metadata.milestones || [],
               position: metadata.position,
+              sortOrder: metadata.sortOrder,
               ...updates,
             },
           };

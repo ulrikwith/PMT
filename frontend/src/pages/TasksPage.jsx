@@ -70,7 +70,40 @@ export default function TasksPage() {
     }
 
     return true;
-  });
+  }).sort((a, b) => (a.sortOrder || 0) - (b.sortOrder || 0));
+
+  const handleReorder = async (sourceIndex, destinationIndex) => {
+    // 1. Create a shallow copy of the filtered tasks to modify locally
+    const reorderedTasks = Array.from(filteredTasks);
+    const [movedTask] = reorderedTasks.splice(sourceIndex, 1);
+    reorderedTasks.splice(destinationIndex, 0, movedTask);
+
+    // 2. Calculate new sortOrder for the moved task
+    const prevTask = reorderedTasks[destinationIndex - 1];
+    const nextTask = reorderedTasks[destinationIndex + 1];
+
+    let newSortOrder;
+    if (!prevTask && !nextTask) {
+      // Only one item in list? Should be 0.
+      newSortOrder = 0;
+    } else if (!prevTask) {
+      // Moved to top
+      newSortOrder = (nextTask.sortOrder || 0) - 1000;
+    } else if (!nextTask) {
+      // Moved to bottom
+      newSortOrder = (prevTask.sortOrder || 0) + 1000;
+    } else {
+      // Moved between two items
+      newSortOrder = ((prevTask.sortOrder || 0) + (nextTask.sortOrder || 0)) / 2;
+    }
+
+    // 3. Update the task locally and on server
+    try {
+       await updateTask(movedTask.id, { sortOrder: newSortOrder });
+    } catch (error) {
+      console.error('Failed to reorder task:', error);
+    }
+  };
 
   const handleFilterChange = (newFilters) => {
     const params = new URLSearchParams();
@@ -120,6 +153,7 @@ export default function TasksPage() {
           onCreate={createTask}
           onUpdate={updateTask}
           onDelete={deleteTask}
+          onReorder={handleReorder}
         />
       )}
     </div>

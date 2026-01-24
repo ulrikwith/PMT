@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Lightbulb, X } from 'lucide-react';
+import { Plus, X } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
 import TagSelector from './TagSelector';
 
@@ -40,7 +40,7 @@ export default function QuickCapture() {
       {isOpen ? (
         <div className="glass-panel rounded-2xl p-6 w-96 shadow-2xl border-blue-500/20 animate-fade-in">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-semibold text-white">Quick Add</h3>
+            <h3 className="text-lg font-semibold text-white">Add Project</h3>
             <button
               onClick={() => setIsOpen(false)}
               className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800/60 transition-all"
@@ -79,11 +79,11 @@ export default function QuickCapture() {
           onClick={() => setIsOpen(true)}
           className="px-6 py-4 bg-gradient-to-r from-blue-600 to-indigo-600 text-white font-bold rounded-full shadow-2xl shadow-blue-500/40 hover:shadow-blue-500/60 hover:scale-105 active:scale-95 transition-all flex items-center justify-center gap-2 group border border-white/10 min-w-[180px]"
         >
-          <Lightbulb
+          <Plus
             size={24}
-            className="text-yellow-300 group-hover:text-yellow-200 transition-colors"
+            className="text-blue-200 group-hover:text-white transition-colors"
           />
-          <span className="tracking-wide">Capture Idea</span>
+          <span className="tracking-wide">Add Project</span>
         </button>
       )}
     </div>

@@ -26,6 +26,7 @@ export function parseTaskText(text) {
             position: parsed.p || parsed.position,
             gridPosition: parsed.g || parsed.gridPosition,
             deletedAt: parsed.d || parsed.deletedAt,
+            sortOrder: parsed.so || parsed.sortOrder,
           },
         };
       } catch (e) {
@@ -55,6 +56,7 @@ export function buildTaskText(description, metadata) {
     p: metadata.position,
     g: metadata.gridPosition,
     d: metadata.deletedAt,
+    so: metadata.sortOrder,
   };
 
   Object.keys(compactMeta).forEach((k) => {

@@ -15,6 +15,7 @@ import {
   Settings,
   Circle,
   Wrench,
+  X,
 } from 'lucide-react';
 
 const DIMENSION_ICONS = {
@@ -50,13 +51,27 @@ function WorkNode({ data, selected }) {
   return (
     <div
       className={`
-        glass-panel rounded-xl p-0 transition-all border-2 overflow-hidden flex flex-col
+        glass-panel rounded-xl p-0 transition-all border-2 overflow-hidden flex flex-col relative group
         ${isExpanded ? expandedWidth : 'w-64'}
         ${selected ? 'border-blue-500 shadow-lg shadow-blue-500/30' : 'border-white/10'}
         ${isEmpty ? 'border-dashed border-slate-700 bg-slate-900/40' : 'bg-slate-900/90'}
         hover:border-blue-500/50 cursor-pointer
       `}
     >
+      {/* Quick Delete Button */}
+      {!isEmpty && (
+        <button
+          onClick={(e) => {
+            e.stopPropagation();
+            data.onDelete?.();
+          }}
+          className="absolute top-2 right-2 p-1 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-200 z-50 bg-slate-900/80 rounded-full"
+          title="Delete Project"
+        >
+          <X size={14} />
+        </button>
+      )}
+
       {/* Top Handle - Input */}
       <Handle
         type="target"

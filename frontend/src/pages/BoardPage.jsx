@@ -10,7 +10,7 @@ import ReactFlow, {
   Panel,
 } from 'reactflow';
 import 'reactflow/dist/style.css';
-import { Plus, Book } from 'lucide-react';
+import { Plus, Book, Lightbulb } from 'lucide-react';
 
 import WorkNode from '../components/WorkflowBoard/WorkNode';
 import ActivityNode from '../components/WorkflowBoard/ActivityNode';
@@ -140,6 +140,7 @@ function BoardPageInner() {
   const [selectedNode, setSelectedNode] = useState(null);
   const [wizardOpen, setWizardOpen] = useState(false);
   const [connectionModal, setConnectionModal] = useState(null);
+  const [visionOpen, setVisionOpen] = useState(false);
   const initialCenterDone = useRef(false);
 
   const toggleExpand = useCallback((nodeId) => {
@@ -213,7 +214,7 @@ function BoardPageInner() {
 
   // Sync Nodes with Tasks - Fixed cell positions
   useEffect(() => {
-    if (loading || (dimensionTasks.length === 0 && tasks.length > 0)) return;
+    if (loading) return;
 
     const loadedNodes = [];
     const loadedEdges = [];
@@ -427,8 +428,6 @@ function BoardPageInner() {
         }}
       />
 
-      {/* MissionControl is now a floating button */}
-      <MissionControl dimension={activeDimension} />
 
       <div className="flex-1 relative">
         <ReactFlow
@@ -459,6 +458,13 @@ function BoardPageInner() {
           />
 
           <Panel position="top-right" className="flex gap-2">
+            <button
+              onClick={() => setVisionOpen(true)}
+              className="px-4 py-2 bg-gradient-to-r from-purple-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all flex items-center gap-2"
+            >
+              <Lightbulb size={18} className="text-yellow-300" />
+              Project Vision
+            </button>
             <button
               onClick={addNewWork}
               className="px-4 py-2 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all flex items-center gap-2"
@@ -514,6 +520,13 @@ function BoardPageInner() {
               setConnectionModal(null);
             }}
             onCancel={() => setConnectionModal(null)}
+          />
+        )}
+
+        {visionOpen && (
+          <MissionControl
+            dimension={activeDimension}
+            onClose={() => setVisionOpen(false)}
           />
         )}
       </div>
