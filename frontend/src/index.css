@@ -12,11 +12,6 @@ input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
 }
 
-/* Hide the default placeholder "dd/mm/yyyy" in Chrome when not focused */
-input[type="date"]:not(:focus):not(.has-value)::-webkit-datetime-edit {
-  color: transparent;
-}
-
 
 @layer components {
   .glass-panel {

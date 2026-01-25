@@ -269,136 +269,134 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
               {workData.activities.map((activity, index) => (
                 <div
                   key={activity.id}
-                  className="glass-panel rounded-lg p-3 border border-white/10"
+                  className="bg-slate-900/60 backdrop-blur-sm border border-slate-700/60 rounded-xl p-4 shadow-lg"
                 >
-                  <div className="flex flex-col gap-2">
-                    <div className="flex items-center gap-2">
-                      <div className="flex items-center justify-center w-6 h-6 rounded bg-slate-700/30 border border-slate-700/30 text-slate-400 font-semibold text-xs flex-shrink-0">
-                        {index + 1}
-                      </div>
-                      <input
-                        type="text"
-                        value={activity.title}
-                        onChange={(e) => {
-                          const updated = [...workData.activities];
-                          updated[index].title = e.target.value;
-                          setWorkData({ ...workData, activities: updated });
-                        }}
-                        className="w-full bg-transparent border-none text-white font-medium focus:outline-none placeholder-slate-500 text-base"
-                        placeholder="Activity name..."
-                        autoFocus={!activity.title}
-                      />
-                      <button
-                        onClick={() => {
-                          setWorkData({
-                            ...workData,
-                            activities: workData.activities.filter((_, i) => i !== index),
-                          });
-                        }}
-                        className="p-1 rounded text-slate-500 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                  {/* Row 1: Number + Title + Delete Button */}
+                  <div className="flex items-start gap-2.5 mb-4">
+                    <div className="flex items-center justify-center w-6 h-6 rounded bg-slate-800/80 border border-slate-700/50 text-slate-400 font-medium text-xs flex-shrink-0">
+                      {index + 1}
                     </div>
+                    <input
+                      type="text"
+                      value={activity.title}
+                      onChange={(e) => {
+                        const updated = [...workData.activities];
+                        updated[index].title = e.target.value;
+                        setWorkData({ ...workData, activities: updated });
+                      }}
+                      className="flex-1 bg-transparent border-none text-slate-400 focus:outline-none placeholder-slate-600 text-sm font-normal py-0.5"
+                      placeholder="Activity name..."
+                      autoFocus={!activity.title}
+                    />
+                    <button
+                      onClick={() => {
+                        setWorkData({
+                          ...workData,
+                          activities: workData.activities.filter((_, i) => i !== index),
+                        });
+                      }}
+                      className="p-1 text-slate-600 hover:text-slate-400 transition-colors flex-shrink-0"
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
 
-                    <div className="pl-8 border-l-2 border-slate-800/50 ml-3.5 py-2 space-y-4">
+                  {/* Row 2: Dates */}
+                  <div className="mb-3">
+                    <div className="flex gap-2.5">
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-400 font-medium mb-1.5 block text-center">
+                          Start
+                        </label>
+                        <input
+                          type="date"
+                          value={activity.startDate || ''}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].startDate = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
+                        />
+                      </div>
+                      <div className="flex-1">
+                        <label className="text-xs text-slate-400 font-medium mb-1.5 block text-center">
+                          End
+                        </label>
+                        <input
+                          type="date"
+                          value={activity.endDate || ''}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].endDate = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
+                        />
+                      </div>
+                    </div>
+                  </div>
 
-                      {/* Row 1: Dates */}
+                  {/* Row 3: Hours, Status, Effort */}
+                  <div>
+                    <div className="grid grid-cols-3 gap-2.5">
+                      {/* Hours */}
                       <div>
-                        <div className="flex justify-between mb-1.5">
-                          <label className="text-xs text-slate-400 font-medium flex items-center gap-1.5">
-                            <Calendar size={12} /> Start
-                          </label>
-                          <label className="text-xs text-slate-400 font-medium pr-1">End</label>
-                        </div>
-                        <div className="flex items-center gap-2">
-                          <input
-                            type="date"
-                            value={activity.startDate || ''}
-                            onChange={(e) => {
-                              const updated = [...workData.activities];
-                              updated[index].startDate = e.target.value;
-                              setWorkData({ ...workData, activities: updated });
-                            }}
-                            className={`w-full bg-slate-900/40 border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50 ${activity.startDate ? 'has-value' : ''}`}
-                          />
-                          <input
-                            type="date"
-                            value={activity.endDate || ''}
-                            onChange={(e) => {
-                              const updated = [...workData.activities];
-                              updated[index].endDate = e.target.value;
-                              setWorkData({ ...workData, activities: updated });
-                            }}
-                            className={`w-full bg-slate-900/40 border border-white/10 rounded px-2 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50 ${activity.endDate ? 'has-value' : ''}`}
-                          />
-                        </div>
+                        <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
+                          Hours
+                        </label>
+                        <input
+                          type="number"
+                          value={activity.timeEstimate}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].timeEstimate = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 font-medium"
+                          placeholder="0"
+                        />
                       </div>
 
-                      {/* Row 2: Hours, Status, Effort - All on same line */}
-                      <div className="grid grid-cols-3 gap-3">
-
-                        {/* Hours Estimated */}
-                        <div>
-                          <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
-                            Hours Estimated
-                          </label>
-                          <input
-                            type="number"
-                            value={activity.timeEstimate}
-                            onChange={(e) => {
-                              const updated = [...workData.activities];
-                              updated[index].timeEstimate = e.target.value;
-                              setWorkData({ ...workData, activities: updated });
-                            }}
-                            className="w-full bg-slate-900/40 border border-white/10 rounded px-3 py-1.5 text-xs text-white text-center focus:outline-none focus:border-blue-500/50 font-mono"
-                            placeholder="0"
-                          />
-                        </div>
-
-                        {/* Status */}
-                        <div>
-                          <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
-                            Status
-                          </label>
-                          <select
-                            value={activity.status}
-                            onChange={(e) => {
-                              const updated = [...workData.activities];
-                              updated[index].status = e.target.value;
-                              setWorkData({ ...workData, activities: updated });
-                            }}
-                            className="w-full bg-slate-900/40 border border-white/10 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50"
-                          >
-                            <option value="todo">Todo</option>
-                            <option value="in-progress">In-Progress</option>
-                            <option value="done">Done</option>
-                          </select>
-                        </div>
-
-                        {/* Effort (Energy) */}
-                        <div>
-                          <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
-                            Effort
-                          </label>
-                          <select
-                            value={activity.energyLevel || 'focused'}
-                            onChange={(e) => {
-                              const updated = [...workData.activities];
-                              updated[index].energyLevel = e.target.value;
-                              setWorkData({ ...workData, activities: updated });
-                            }}
-                            className="w-full bg-slate-900/40 border border-white/10 rounded px-3 py-1.5 text-xs text-white focus:outline-none focus:border-blue-500/50"
-                          >
-                            <option value="deep">Deep</option>
-                            <option value="focused">Focus</option>
-                            <option value="light">Light</option>
-                            <option value="admin">Admin</option>
-                          </select>
-                        </div>
-
+                      {/* Status */}
+                      <div>
+                        <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
+                          Status
+                        </label>
+                        <select
+                          value={activity.status}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].status = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
+                        >
+                          <option value="todo">Todo</option>
+                          <option value="in-progress">In Progress</option>
+                          <option value="done">Done</option>
+                        </select>
                       </div>
 
+                      {/* Effort */}
+                      <div>
+                        <label className="block text-xs text-slate-400 font-medium mb-1.5 text-center">
+                          Effort
+                        </label>
+                        <select
+                          value={activity.energyLevel || 'focused'}
+                          onChange={(e) => {
+                            const updated = [...workData.activities];
+                            updated[index].energyLevel = e.target.value;
+                            setWorkData({ ...workData, activities: updated });
+                          }}
+                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-white text-center focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
+                        >
+                          <option value="deep">Deep</option>
+                          <option value="focused">Focus</option>
+                          <option value="light">Light</option>
+                        </select>
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -608,7 +606,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
         {step < 4 ? (
           <button
             onClick={() => setStep(step + 1)}
-            disabled={step === 1 && !workData.element}
+            disabled={step === 1 && !workData.label.trim()}
             className="px-6 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 text-white font-medium rounded-lg shadow-lg shadow-blue-500/30 hover:shadow-blue-500/50 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Next →
