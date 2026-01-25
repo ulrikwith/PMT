@@ -192,7 +192,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
           <div className="space-y-5 animate-in slide-in-from-right-4 duration-200">
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Project Name *
+                Project Name
               </label>
               <input
                 type="text"
@@ -217,20 +217,11 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                Element * (in {workData.dimension})
+                {workData.dimension.charAt(0).toUpperCase() + workData.dimension.slice(1)} Type
               </label>
-              <select
-                value={workData.element}
-                onChange={(e) => setWorkData({ ...workData, element: e.target.value })}
-                className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
-              >
-                <option value="">Select Element...</option>
-                {getElements(workData.dimension).map((el) => (
-                  <option key={el} value={el}>
-                    {el}
-                  </option>
-                ))}
-              </select>
+              <div className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white">
+                {workData.element || 'Not set'}
+              </div>
             </div>
           </div>
         )}
