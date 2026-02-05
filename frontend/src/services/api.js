@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { supabase } from './supabase.js';
 
 const API_BASE_URL = '/api';
 
@@ -11,7 +12,19 @@ const axiosInstance = axios.create({
   },
 });
 
-// Add request interceptor for error handling and retries
+// ─── Auth Interceptor: Attach Supabase session token ──────────
+
+axiosInstance.interceptors.request.use(async (config) => {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  if (session?.access_token) {
+    config.headers.Authorization = `Bearer ${session.access_token}`;
+  }
+  return config;
+});
+
+// Add response interceptor for error handling and retries
 // Use per-request retry tracking to avoid global state issues
 const MAX_RETRIES = 2;
 

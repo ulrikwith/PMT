@@ -1,79 +1,166 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { GoogleOAuthProvider } from '@react-oauth/google';
+import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { supabase } from '../services/supabase.js';
 import axios from 'axios';
 
 const AuthContext = createContext();
-const API_URL = '/api/auth';
-
-// Google Client ID should be in env, using placeholder or passed from config
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // User needs to provide this
 
 // Auth bypass: active in development, disabled in production builds
-// Set VITE_BYPASS_AUTH=true in .env to force-enable in any environment
 const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === 'true' || import.meta.env.DEV;
 
+// Bypass user object (computed once at module level)
+const BYPASS_USER = BYPASS_AUTH
+  ? { id: 'bypass-user', email: 'user@local.dev', name: 'Local User', role: 'owner', emailVerified: true }
+  : null;
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('pmt_token'));
-  const [loading, setLoading] = useState(true);
+  const [user, setUser] = useState(BYPASS_USER);
+  const [session, setSession] = useState(null);
+  const [loading, setLoading] = useState(!BYPASS_AUTH); // Not loading if bypassed
+
+  // ─── Session Listener ───────────────────────────────────────
 
   useEffect(() => {
-    // 🚧 BYPASS: Skip authentication when BYPASS_AUTH is enabled
-    if (BYPASS_AUTH) {
-      setUser({ id: 'bypass-user', email: 'user@local.dev', name: 'Local User' });
-      setLoading(false);
-      return;
-    }
+    if (BYPASS_AUTH) return;
 
-    if (token) {
-      // Decode token to get user info (simple version)
-      // Ideally call /api/auth/me
+    /**
+     * Provision Blue.cc TodoList for new users (idempotent).
+     * Defined inside useEffect to satisfy lint ordering rules.
+     */
+    async function provisionWorkspace(token) {
       try {
-        const payload = JSON.parse(atob(token.split('.')[1]));
-        setUser({ id: payload.id, email: payload.email });
-      } catch (e) {
-        logout();
+        await axios.post(
+          '/api/auth/provision',
+          {},
+          { headers: { Authorization: `Bearer ${token}` } }
+        );
+      } catch (err) {
+        console.warn('Workspace provisioning deferred:', err.message);
       }
     }
-    setLoading(false);
-  }, [token]);
 
-  const login = async (email, password) => {
-    const res = await axios.post(`${API_URL}/login`, { email, password });
-    setToken(res.data.token);
-    localStorage.setItem('pmt_token', res.data.token);
-    setUser(res.data.user);
-  };
-
-  const register = async (email, password, name) => {
-    const res = await axios.post(`${API_URL}/register`, { email, password, name });
-    setToken(res.data.token);
-    localStorage.setItem('pmt_token', res.data.token);
-    setUser(res.data.user);
-  };
-
-  const googleLogin = async (credentialResponse) => {
-    const res = await axios.post(`${API_URL}/google`, {
-      credential: credentialResponse.credential,
+    // Get initial session
+    supabase.auth.getSession().then(({ data: { session: initialSession } }) => {
+      setSession(initialSession);
+      if (initialSession?.user) {
+        setUser({
+          id: initialSession.user.id,
+          email: initialSession.user.email,
+          name: initialSession.user.user_metadata?.name || '',
+          emailVerified: !!initialSession.user.email_confirmed_at,
+        });
+      }
+      setLoading(false);
     });
-    setToken(res.data.token);
-    localStorage.setItem('pmt_token', res.data.token);
-    setUser(res.data.user);
-  };
 
-  const logout = () => {
-    setToken(null);
+    // Listen for auth state changes (login, logout, token refresh)
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (event, newSession) => {
+        setSession(newSession);
+
+        if (newSession?.user) {
+          setUser({
+            id: newSession.user.id,
+            email: newSession.user.email,
+            name: newSession.user.user_metadata?.name || '',
+            emailVerified: !!newSession.user.email_confirmed_at,
+          });
+        } else {
+          setUser(null);
+        }
+
+        // After signup, provision Blue.cc workspace
+        if (event === 'SIGNED_IN' && newSession?.access_token) {
+          provisionWorkspace(newSession.access_token);
+        }
+      }
+    );
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // ─── Auth Actions ───────────────────────────────────────────
+
+  const login = useCallback(async (email, password) => {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const register = useCallback(async (email, password, name) => {
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { name }, // stored in user_metadata
+      },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const googleLogin = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'google',
+      options: {
+        redirectTo: `${window.location.origin}/board`,
+      },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const githubLogin = useCallback(async () => {
+    const { data, error } = await supabase.auth.signInWithOAuth({
+      provider: 'github',
+      options: {
+        redirectTo: `${window.location.origin}/board`,
+      },
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const logout = useCallback(async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) throw error;
     setUser(null);
-    localStorage.removeItem('pmt_token');
+    setSession(null);
+  }, []);
+
+  const forgotPassword = useCallback(async (email) => {
+    const { data, error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const updatePassword = useCallback(async (newPassword) => {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword,
+    });
+    if (error) throw error;
+    return data;
+  }, []);
+
+  const value = {
+    user,
+    session,
+    loading,
+    isAuthenticated: !!user,
+    login,
+    register,
+    googleLogin,
+    githubLogin,
+    logout,
+    forgotPassword,
+    updatePassword,
   };
 
-  return (
-    <GoogleOAuthProvider clientId={GOOGLE_CLIENT_ID}>
-      <AuthContext.Provider value={{ user, token, login, register, googleLogin, logout, loading }}>
-        {children}
-      </AuthContext.Provider>
-    </GoogleOAuthProvider>
-  );
+  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }
 
 export function useAuth() {

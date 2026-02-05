@@ -1,124 +1,140 @@
 import express from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-import { OAuth2Client } from 'google-auth-library';
-import authStorage from '../services/authStorage.js';
+import supabase from '../services/supabase.js';
+import coreClient from '../services/bluecc/core.js';
 
 const router = express.Router();
-const JWT_SECRET = process.env.JWT_SECRET || 'pmt-secret-key-change-in-prod';
-const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// Auth bypass: active in development, disabled in production
-// Set BYPASS_AUTH=true in .env to force-enable in any environment
-const BYPASS_AUTH = process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV !== 'production';
+// ─── Routes ───────────────────────────────────────────────────
+// Most auth (register, login, Google, password reset) is handled
+// client-side by Supabase JS. These backend routes handle only
+// what requires server-side logic.
 
-// 1. Register (Ordinary Email)
-router.post('/register', async (req, res) => {
-  const { email, password, name } = req.body;
-
-  if (!email || !password) {
-    return res.status(400).json({ error: 'Email and password required' });
-  }
-
-  try {
-    const existing = await authStorage.findUserByEmail(email);
-    if (existing) {
-      return res.status(400).json({ error: 'User already exists' });
-    }
-
-    const salt = await bcrypt.genSalt(10);
-    const hash = await bcrypt.hash(password, salt);
-
-    const newUser = await authStorage.createUser(email, hash, null, name);
-
-    // Auto-login
-    const token = jwt.sign({ id: newUser.id, email: newUser.email }, JWT_SECRET, {
-      expiresIn: '7d',
-    });
-    res
-      .status(201)
-      .json({ token, user: { id: newUser.id, email: newUser.email, name: newUser.name } });
-  } catch (e) {
-    console.error('Register error:', e);
-    res.status(500).json({ error: 'Registration failed' });
-  }
-});
-
-// 2. Login (Ordinary Email)
-router.post('/login', async (req, res) => {
-  const { email, password } = req.body;
-
-  try {
-    const user = await authStorage.findUserByEmail(email);
-    if (!user) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    if (!user.hash) {
-      return res.status(400).json({ error: 'Please login with Google' });
-    }
-
-    const isMatch = await bcrypt.compare(password, user.hash);
-    if (!isMatch) {
-      return res.status(400).json({ error: 'Invalid credentials' });
-    }
-
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
-  } catch (e) {
-    console.error('Login error:', e);
-    res.status(500).json({ error: 'Login failed' });
-  }
-});
-
-// 3. Google Login
-router.post('/google', async (req, res) => {
-  const { credential } = req.body;
-
-  try {
-    const ticket = await client.verifyIdToken({
-      idToken: credential,
-      audience: process.env.GOOGLE_CLIENT_ID,
-    });
-    const payload = ticket.getPayload();
-    const { email, sub: googleId, name } = payload;
-
-    let user = await authStorage.findUserByEmail(email);
-
-    if (!user) {
-      // Create new user linked to Google
-      user = await authStorage.createUser(email, null, googleId, name);
-    } else if (!user.gid) {
-      // Link existing account? (For now, just allow login)
-      // Ideally we'd update the user with the GID, but let's keep it simple
-    }
-
-    const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
-    res.json({ token, user: { id: user.id, email: user.email, name: user.name } });
-  } catch (e) {
-    console.error('Google Auth Error:', e);
-    res.status(400).json({ error: 'Google authentication failed' });
-  }
-});
-
-// Middleware for protecting routes
-export const authenticateToken = (req, res, next) => {
-  // 🚧 BYPASS: Skip authentication when BYPASS_AUTH is enabled
-  if (BYPASS_AUTH) {
-    req.user = { id: 'bypass-user', email: 'user@local.dev' };
-    return next();
-  }
-
+/**
+ * GET /api/auth/me
+ * Returns the authenticated user's profile + subscription.
+ * Requires Supabase JWT in Authorization header.
+ */
+router.get('/me', async (req, res) => {
   const authHeader = req.headers['authorization'];
-  const token = authHeader && authHeader.split(' ')[1];
+  const token = authHeader?.split(' ')[1];
 
-  if (!token) return res.sendStatus(401);
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
 
-  jwt.verify(token, JWT_SECRET, (err, user) => {
-    if (err) return res.sendStatus(403);
-    req.user = user;
-    next();
-  });
-};
+  try {
+    // Validate token with Supabase
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Fetch profile
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('id', user.id)
+      .single();
+
+    if (profileError) {
+      return res.status(404).json({ error: 'Profile not found' });
+    }
+
+    // Fetch subscription
+    const { data: subscription } = await supabase
+      .from('subscriptions')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+
+    res.json({
+      id: user.id,
+      email: user.email,
+      name: profile.name || user.user_metadata?.name || '',
+      role: profile.role || 'owner',
+      emailVerified: !!user.email_confirmed_at,
+      todoListId: profile.blue_cc_todo_list_id,
+      subscription: subscription || { status: 'trial', plan: 'starter' },
+      createdAt: profile.created_at,
+    });
+  } catch (err) {
+    console.error('GET /me error:', err);
+    res.status(500).json({ error: 'Failed to fetch profile' });
+  }
+});
+
+/**
+ * POST /api/auth/provision
+ * Called by the frontend after a user signs up.
+ * Creates a Blue.cc TodoList and stores the ID in the profile.
+ * Requires Supabase JWT in Authorization header.
+ */
+router.post('/provision', async (req, res) => {
+  const authHeader = req.headers['authorization'];
+  const token = authHeader?.split(' ')[1];
+
+  if (!token) {
+    return res.status(401).json({ error: 'No token provided' });
+  }
+
+  try {
+    // Validate token
+    const { data: { user }, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !user) {
+      return res.status(401).json({ error: 'Invalid token' });
+    }
+
+    // Check if already provisioned
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('blue_cc_todo_list_id')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.blue_cc_todo_list_id) {
+      return res.json({
+        message: 'Already provisioned',
+        todoListId: profile.blue_cc_todo_list_id,
+      });
+    }
+
+    // Create Blue.cc TodoList
+    const title = `pmt_user_${user.email.toLowerCase().replace(/[^a-z0-9]/g, '_')}`;
+    const todoListId = await coreClient.createTodoList(title);
+
+    if (!todoListId) {
+      return res.status(500).json({ error: 'Failed to create Blue.cc workspace' });
+    }
+
+    // Update profile
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({
+        blue_cc_todo_list_id: todoListId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('id', user.id);
+
+    if (updateError) {
+      console.error('Profile update error:', updateError);
+      return res.status(500).json({ error: 'Failed to save workspace' });
+    }
+
+    // Create default subscription
+    await supabase.from('subscriptions').upsert({
+      user_id: user.id,
+      status: 'trial',
+      plan: 'starter',
+    });
+
+    res.json({
+      message: 'Workspace provisioned',
+      todoListId,
+    });
+  } catch (err) {
+    console.error('Provision error:', err);
+    res.status(500).json({ error: 'Provisioning failed' });
+  }
+});
 
 export default router;

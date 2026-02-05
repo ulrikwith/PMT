@@ -164,6 +164,37 @@ class CoreClient {
     throw new Error('No todo list found');
   }
 
+  /**
+   * Create a new TodoList in the default project.
+   * Used for user provisioning — each user gets their own TodoList.
+   *
+   * @param {string} title     - TodoList title (e.g. "pmt_user_alice@email.com")
+   * @param {string|null} projectId - Optional project ID override
+   * @returns {string|null} The created TodoList ID, or null on failure
+   */
+  async createTodoList(title, projectId = null) {
+    const pid = projectId || (await this.getDefaultProjectId());
+
+    const mutation = `
+      mutation CreateList($input: CreateTodoListInput!) {
+        createTodoList(input: $input) {
+          id
+        }
+      }
+    `;
+
+    const result = await this.query(mutation, {
+      input: { projectId: pid, title },
+    });
+
+    if (result.success) {
+      return result.data.createTodoList.id;
+    }
+
+    console.error('Failed to create TodoList:', result.error);
+    return null;
+  }
+
   async getWorkspaces() {
     try {
       const id = await this.getCompanyId();

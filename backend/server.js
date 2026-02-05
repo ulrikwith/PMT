@@ -3,32 +3,34 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import blueClient from './blueClient.js';
 import { LAUNCH_PHASES } from './launchData.js';
-import authRoutes, { authenticateToken } from './routes/auth.js';
+import authRoutes from './routes/auth.js';
+import { authenticateToken } from './middleware/auth.js';
 
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
-// Middleware
-app.use(cors());
+// ─── Global Middleware ────────────────────────────────────────
+
+app.use(
+  cors({
+    origin: process.env.APP_URL || 'http://localhost:5173',
+    credentials: true, // Required for Supabase auth cookies
+  })
+);
 app.use(express.json());
-
-// Auth Routes
-app.use('/api/auth', authRoutes);
-
-// Protected Routes Middleware (Apply to task operations)
-// For now, let's keep GET public but protect mutations if desired.
-// Or apply globally except health/auth.
-// app.use('/api/tasks', authenticateToken);
-// Currently disabled to avoid breaking frontend dev flow immediately.
-// Uncomment above line to enforce auth.
 
 // Request logging
 app.use((req, res, next) => {
   console.log(`${new Date().toISOString()} ${req.method} ${req.url}`);
   next();
 });
+
+// ─── Public Routes ────────────────────────────────────────────
+
+// Auth Routes (login, register, etc. — no middleware needed)
+app.use('/api/auth', authRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -38,6 +40,11 @@ app.get('/api/health', (req, res) => {
     mode: 'cloud',
   });
 });
+
+// ─── Protected Routes (all require authentication) ───────────
+
+// Apply authenticateToken middleware to all routes below
+app.use('/api', authenticateToken);
 
 // --- Launch Routes ---
 
@@ -413,13 +420,15 @@ app.post('/api/graphql', async (req, res) => {
   }
 });
 
-// Global Error Handler
+// ─── Error Handler ────────────────────────────────────────────
+
 app.use((err, req, res, next) => {
   console.error('Error:', err.message);
   res.status(500).json({ error: 'Internal server error', details: err.message });
 });
 
-// Start server
+// ─── Start Server ─────────────────────────────────────────────
+
 app.listen(PORT, async () => {
   console.log(`PMT Backend running on http://localhost:${PORT}`);
   try {

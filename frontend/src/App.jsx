@@ -5,7 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExplorationProvider } from './context/ExplorationContext';
 import { VisionProvider } from './context/VisionContext';
-// import LoginPage from './pages/LoginPage'; // 🚧 DISABLED - uncomment when auth is needed
+import LoginPage from './pages/LoginPage';
 
 // Lazy load pages
 const TasksPage = lazy(() => import('./pages/TasksPage'));
@@ -23,19 +23,39 @@ function LoadingSpinner() {
   );
 }
 
-// 🚧 BYPASS: Authentication disabled - routes are now public
-// Uncomment the checks below when authentication is needed
+/**
+ * ProtectedRoute — redirects to /login if not authenticated.
+ * In dev mode with BYPASS_AUTH, the user is always set.
+ */
 function ProtectedRoute({ children }) {
   const { user, loading } = useAuth();
   if (loading) return <LoadingSpinner />;
-  // if (!user) return <Navigate to="/login" replace />;
+  if (!user) return <Navigate to="/login" replace />;
+  return children;
+}
+
+/**
+ * PublicRoute — redirects to /board if already authenticated.
+ * Prevents logged-in users from seeing the login page.
+ */
+function PublicRoute({ children }) {
+  const { user, loading } = useAuth();
+  if (loading) return <LoadingSpinner />;
+  if (user) return <Navigate to="/board" replace />;
   return children;
 }
 
 function AppRoutes() {
   return (
     <Routes>
-      {/* <Route path="/login" element={<LoginPage />} /> */} {/* 🚧 DISABLED */}
+      <Route
+        path="/login"
+        element={
+          <PublicRoute>
+            <LoginPage />
+          </PublicRoute>
+        }
+      />
       <Route
         path="/"
         element={
@@ -51,8 +71,8 @@ function AppRoutes() {
         <Route path="journey" element={<JourneyPage />} />
         <Route path="review" element={<ReviewPage />} />
         <Route path="trash" element={<TrashPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
+      <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
   );
 }
