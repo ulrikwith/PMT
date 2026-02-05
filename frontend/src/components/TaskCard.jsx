@@ -6,8 +6,6 @@ import {
   Pause,
   Clock,
   Edit2,
-  X,
-  Save,
   Trash2,
   ChevronDown,
 } from 'lucide-react';
@@ -85,20 +83,6 @@ const TaskCard = React.memo(function TaskCard({ task, onUpdate, onDelete }) {
     <div
       className={`glass-panel rounded-xl p-5 group hover:border-blue-500/30 transition-all duration-300 mb-4 relative ${isExpanded ? 'bg-slate-800/60 ring-1 ring-blue-500/20' : ''}`}
     >
-      {/* Quick Delete Button */}
-      <button
-        onClick={(e) => {
-          e.stopPropagation();
-          if (window.confirm('Delete this task?')) {
-            onDelete(task.id);
-          }
-        }}
-        className="absolute top-2 right-2 p-1.5 text-slate-500 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all duration-200 z-10"
-        title="Delete Task"
-      >
-        <X size={14} />
-      </button>
-
       <div className="flex justify-between items-start gap-4">
         {/* Main Content */}
         <div className="flex-1 cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>

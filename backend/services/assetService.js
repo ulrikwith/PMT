@@ -1,8 +1,14 @@
 import supabase from './supabase.js';
 
+// UUID v4 format check — Supabase requires valid UUIDs for user_id queries
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 class AssetService {
   // ─── List Assets ─────────────────────────────────────────────
   async getAssets(userId, filters = {}) {
+    if (!UUID_RE.test(userId)) {
+      return { success: true, data: [] };
+    }
     try {
       let query = supabase
         .from('assets')
@@ -39,6 +45,9 @@ class AssetService {
 
   // ─── Get Single Asset ────────────────────────────────────────
   async getAsset(userId, assetId) {
+    if (!UUID_RE.test(userId)) {
+      return { success: false, error: 'Invalid user ID' };
+    }
     try {
       const { data, error } = await supabase
         .from('assets')
@@ -58,6 +67,9 @@ class AssetService {
 
   // ─── Create Asset ───────────────────────────────────────────
   async createAsset(userId, assetData) {
+    if (!UUID_RE.test(userId)) {
+      return { success: false, error: 'Invalid user ID' };
+    }
     try {
       const { name, type, description, purpose, audience, dimension, current_focus, next_milestone, next_milestone_date } = assetData;
 
