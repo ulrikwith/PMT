@@ -65,7 +65,7 @@ app.get('/api/launch/milestones', (req, res) => {
 
 app.get('/api/launch/milestones/:id/tasks', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.getTasksForMilestone(id);
+  const result = await blueClient.getTasksForMilestone(req.user.todoListId, id);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -75,7 +75,7 @@ app.get('/api/launch/milestones/:id/tasks', async (req, res) => {
 
 app.get('/api/launch/milestones/:id/progress', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.getMilestoneProgress(id);
+  const result = await blueClient.getMilestoneProgress(req.user.todoListId, id);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -86,7 +86,7 @@ app.get('/api/launch/milestones/:id/progress', async (req, res) => {
 app.post('/api/launch/milestones/:id/link', async (req, res) => {
   const { id } = req.params;
   const { taskId } = req.body;
-  const result = await blueClient.linkTaskToMilestone(taskId, id);
+  const result = await blueClient.linkTaskToMilestone(req.user.todoListId, taskId, id);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -95,7 +95,7 @@ app.post('/api/launch/milestones/:id/link', async (req, res) => {
 });
 
 app.get('/api/launch/readiness', async (req, res) => {
-  const result = await blueClient.calculateReadiness();
+  const result = await blueClient.calculateReadiness(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -106,9 +106,9 @@ app.get('/api/launch/readiness', async (req, res) => {
 // --- Export Route ---
 
 app.get('/api/export', async (req, res) => {
-  const tasks = await blueClient.getTasks();
+  const tasks = await blueClient.getTasks(req.user.todoListId);
   const tags = await blueClient.getTags();
-  const relationships = await blueClient.getAllRelationships();
+  const relationships = await blueClient.getAllRelationships(req.user.todoListId);
 
   const data = {
     tasks: tasks.success ? tasks.data : [],
@@ -144,7 +144,7 @@ app.get('/api/workspaces', async (req, res) => {
 
 app.get('/api/tasks', async (req, res) => {
   const filters = req.query;
-  const result = await blueClient.getTasks(filters);
+  const result = await blueClient.getTasks(req.user.todoListId, filters);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -160,7 +160,7 @@ app.post('/api/tasks', async (req, res) => {
   if (title.length > 200) {
     return res.status(400).json({ error: 'Task title must be 200 characters or less' });
   }
-  const result = await blueClient.createTask(req.body);
+  const result = await blueClient.createTask(req.user.todoListId, req.body);
   if (result.success) {
     res.status(201).json(result.data);
   } else {
@@ -170,7 +170,7 @@ app.post('/api/tasks', async (req, res) => {
 
 app.put('/api/tasks/:id', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.updateTask(id, req.body);
+  const result = await blueClient.updateTask(req.user.todoListId, id, req.body);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -181,7 +181,7 @@ app.put('/api/tasks/:id', async (req, res) => {
 app.delete('/api/tasks/:id', async (req, res) => {
   const { id } = req.params;
   const permanent = req.query.permanent === 'true';
-  const result = await blueClient.deleteTask(id, permanent);
+  const result = await blueClient.deleteTask(req.user.todoListId, id, permanent);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -192,7 +192,7 @@ app.delete('/api/tasks/:id', async (req, res) => {
 // --- Trash Management ---
 
 app.get('/api/trash', async (req, res) => {
-  const result = await blueClient.getDeletedTasks();
+  const result = await blueClient.getDeletedTasks(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -202,7 +202,7 @@ app.get('/api/trash', async (req, res) => {
 
 app.post('/api/trash/:id/restore', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.restoreTask(id);
+  const result = await blueClient.restoreTask(req.user.todoListId, id);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -218,7 +218,7 @@ app.delete('/api/trash', async (req, res) => {
       return res.status(400).json({ error: 'olderThanDays must be a non-negative integer' });
     }
   }
-  const result = await blueClient.emptyTrash(olderThanDays);
+  const result = await blueClient.emptyTrash(req.user.todoListId, olderThanDays);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -228,7 +228,7 @@ app.delete('/api/trash', async (req, res) => {
 
 app.delete('/api/trash/:id', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.deleteTask(id, true); // permanent delete
+  const result = await blueClient.deleteTask(req.user.todoListId, id, true); // permanent delete
   if (result.success) {
     res.json(result.data);
   } else {
@@ -263,7 +263,7 @@ app.post('/api/tags', async (req, res) => {
 // --- Relationships ---
 
 app.get('/api/relationships', async (req, res) => {
-  const result = await blueClient.getAllRelationships();
+  const result = await blueClient.getAllRelationships(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -276,7 +276,7 @@ app.post('/api/relationships', async (req, res) => {
   if (!fromTaskId || !toTaskId || !type) {
     return res.status(400).json({ error: 'Missing required fields' });
   }
-  const result = await blueClient.createTaskRelationship(fromTaskId, toTaskId, type);
+  const result = await blueClient.createTaskRelationship(req.user.todoListId, fromTaskId, toTaskId, type);
   if (result.success) {
     res.status(201).json(result.data);
   } else {
@@ -286,7 +286,7 @@ app.post('/api/relationships', async (req, res) => {
 
 app.get('/api/tasks/:id/relationships', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.getTaskRelationships(id);
+  const result = await blueClient.getTaskRelationships(req.user.todoListId, id);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -296,7 +296,7 @@ app.get('/api/tasks/:id/relationships', async (req, res) => {
 
 app.delete('/api/relationships/:id', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.deleteRelationship(id);
+  const result = await blueClient.deleteRelationship(req.user.todoListId, id);
   if (result.success) {
     res.json({ success: true });
   } else {
@@ -307,7 +307,7 @@ app.delete('/api/relationships/:id', async (req, res) => {
 // --- Visions ---
 
 app.get('/api/visions', async (req, res) => {
-  const result = await blueClient.getAllVisions();
+  const result = await blueClient.getAllVisions(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -321,7 +321,7 @@ app.put('/api/visions/:dimension', async (req, res) => {
   if (!data) {
     return res.status(400).json({ error: 'Vision data is required' });
   }
-  const result = await blueClient.saveVision(dimension, data, elementId || null);
+  const result = await blueClient.saveVision(req.user.todoListId, dimension, data, elementId || null);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -332,7 +332,7 @@ app.put('/api/visions/:dimension', async (req, res) => {
 app.delete('/api/visions/:dimension', async (req, res) => {
   const { dimension } = req.params;
   const { elementId, type } = req.query;
-  const result = await blueClient.deleteVision(dimension, elementId || null, type || null);
+  const result = await blueClient.deleteVision(req.user.todoListId, dimension, elementId || null, type || null);
   if (result.success) {
     res.json({ success: true });
   } else {
@@ -343,7 +343,7 @@ app.delete('/api/visions/:dimension', async (req, res) => {
 // --- Reviews ---
 
 app.get('/api/reviews', async (req, res) => {
-  const result = await blueClient.getReviews();
+  const result = await blueClient.getReviews(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -356,7 +356,7 @@ app.post('/api/reviews', async (req, res) => {
   if (!date || !answers) {
     return res.status(400).json({ error: 'Review date and answers are required' });
   }
-  const result = await blueClient.saveReview(req.body);
+  const result = await blueClient.saveReview(req.user.todoListId, req.body);
   if (result.success) {
     res.status(201).json(result.data);
   } else {
@@ -367,7 +367,7 @@ app.post('/api/reviews', async (req, res) => {
 // --- Explorations ---
 
 app.get('/api/explorations', async (req, res) => {
-  const result = await blueClient.getAllExplorations();
+  const result = await blueClient.getAllExplorations(req.user.todoListId);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -380,7 +380,7 @@ app.post('/api/explorations', async (req, res) => {
   if (!title) {
     return res.status(400).json({ error: 'Exploration title is required' });
   }
-  const result = await blueClient.saveExploration(req.body);
+  const result = await blueClient.saveExploration(req.user.todoListId, req.body);
   if (result.success) {
     res.status(201).json(result.data);
   } else {
@@ -390,7 +390,7 @@ app.post('/api/explorations', async (req, res) => {
 
 app.put('/api/explorations/:id', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.updateExploration(id, req.body);
+  const result = await blueClient.updateExploration(req.user.todoListId, id, req.body);
   if (result.success) {
     res.json(result.data);
   } else {
@@ -400,7 +400,7 @@ app.put('/api/explorations/:id', async (req, res) => {
 
 app.delete('/api/explorations/:id', async (req, res) => {
   const { id } = req.params;
-  const result = await blueClient.deleteExploration(id);
+  const result = await blueClient.deleteExploration(req.user.todoListId, id);
   if (result.success) {
     res.json({ success: true });
   } else {

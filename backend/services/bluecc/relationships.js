@@ -43,7 +43,7 @@ class RelationshipService {
     return false; // No circular dependency
   }
 
-  async createTaskRelationship(fromTaskId, toTaskId, type, label = null) {
+  async createTaskRelationship(todoListId, fromTaskId, toTaskId, type, label = null) {
     try {
       // Validate inputs
       if (!fromTaskId || !toTaskId || !type) {
@@ -62,7 +62,7 @@ class RelationshipService {
       }
 
       // 1. Get current task
-      const tasksRes = await taskService.getTasks();
+      const tasksRes = await taskService.getTasks(todoListId);
       if (!tasksRes.success) return { success: false, error: tasksRes.error };
 
       const tasks = tasksRes.data;
@@ -97,7 +97,7 @@ class RelationshipService {
       const updatedRels = [...currentRels, newRel];
 
       // 3. Update task (taskService.updateTask now writes to custom fields)
-      const updateRes = await taskService.updateTask(fromTaskId, { relationships: updatedRels });
+      const updateRes = await taskService.updateTask(todoListId, fromTaskId, { relationships: updatedRels });
       if (!updateRes.success) return { success: false, error: updateRes.error };
 
       return { success: true, data: newRel };
@@ -106,9 +106,9 @@ class RelationshipService {
     }
   }
 
-  async getAllRelationships() {
+  async getAllRelationships(todoListId) {
     try {
-      const tasksResult = await taskService.getTasks();
+      const tasksResult = await taskService.getTasks(todoListId);
       if (!tasksResult.success) {
         return { success: false, error: tasksResult.error };
       }
@@ -128,9 +128,9 @@ class RelationshipService {
     }
   }
 
-  async getTaskRelationships(taskId) {
+  async getTaskRelationships(todoListId, taskId) {
     try {
-      const allRels = await this.getAllRelationships();
+      const allRels = await this.getAllRelationships(todoListId);
       if (!allRels.success) {
         return allRels;
       }
@@ -143,9 +143,9 @@ class RelationshipService {
     }
   }
 
-  async deleteRelationship(relationshipId) {
+  async deleteRelationship(todoListId, relationshipId) {
     try {
-      const tasksResult = await taskService.getTasks();
+      const tasksResult = await taskService.getTasks(todoListId);
       if (!tasksResult.success) return { success: false, error: tasksResult.error };
 
       const tasks = tasksResult.data;
@@ -171,7 +171,7 @@ class RelationshipService {
       const updatedRels = [...targetTask.relationships];
       updatedRels.splice(relIndex, 1);
 
-      const updateRes = await taskService.updateTask(targetTask.id, { relationships: updatedRels });
+      const updateRes = await taskService.updateTask(todoListId, targetTask.id, { relationships: updatedRels });
       if (!updateRes.success) return { success: false, error: updateRes.error };
 
       return { success: true };

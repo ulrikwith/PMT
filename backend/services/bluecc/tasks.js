@@ -32,9 +32,13 @@ class TaskService {
     return nextLock;
   }
 
-  async getTasks(filters = {}) {
+  async _resolveTodoListId(todoListId) {
+    return todoListId || (await coreClient.getDefaultTodoListId());
+  }
+
+  async getTasks(todoListId, filters = {}) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
 
       const query = `
         query GetTodos($todoListId: String!) {
@@ -185,9 +189,9 @@ class TaskService {
     }
   }
 
-  async createTask(taskData) {
+  async createTask(todoListId, taskData) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
 
       const textContent = buildTaskText(taskData.description, {
         workType: taskData.workType,
@@ -298,7 +302,7 @@ class TaskService {
     }
   }
 
-  async updateTask(taskId, updates) {
+  async updateTask(todoListId, taskId, updates) {
     return this.withLock(taskId, async () => {
       try {
         const mutation = `
@@ -451,7 +455,7 @@ class TaskService {
     });
   }
 
-  async deleteTask(taskId, permanent = false) {
+  async deleteTask(todoListId, taskId, permanent = false) {
     try {
       if (permanent) {
         const mutation = `
@@ -471,7 +475,7 @@ class TaskService {
         return { success: true, data: { id: taskId } };
       } else {
         const deletedAt = new Date().toISOString();
-        const result = await this.updateTask(taskId, { deletedAt });
+        const result = await this.updateTask(todoListId, taskId, { deletedAt });
 
         if (!result.success) {
           return { success: false, error: result.error };
@@ -485,9 +489,9 @@ class TaskService {
     }
   }
 
-  async restoreTask(taskId) {
+  async restoreTask(todoListId, taskId) {
     try {
-      const result = await this.updateTask(taskId, { deletedAt: null });
+      const result = await this.updateTask(todoListId, taskId, { deletedAt: null });
 
       if (!result.success) {
         return { success: false, error: result.error };
@@ -500,9 +504,9 @@ class TaskService {
     }
   }
 
-  async getDeletedTasks() {
+  async getDeletedTasks(todoListId) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
 
       const query = `
         query GetTodos($todoListId: String!) {
@@ -565,9 +569,9 @@ class TaskService {
     }
   }
 
-  async emptyTrash(olderThanDays = null) {
+  async emptyTrash(todoListId, olderThanDays = null) {
     try {
-      const deletedResult = await this.getDeletedTasks();
+      const deletedResult = await this.getDeletedTasks(todoListId);
       if (!deletedResult.success) {
         return { success: false, error: deletedResult.error };
       }
@@ -582,7 +586,7 @@ class TaskService {
 
       const results = [];
       for (const task of tasksToDelete) {
-        const result = await this.deleteTask(task.id, true);
+        const result = await this.deleteTask(todoListId, task.id, true);
         results.push({ id: task.id, success: result.success });
       }
 

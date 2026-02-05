@@ -13,6 +13,9 @@ jest.unstable_mockModule('../services/bluecc/tasks.js', () => ({
 
 const { default: relationshipService } = await import('../services/bluecc/relationships.js');
 
+// Test todoListId — passed through all calls for multi-tenancy
+const TEST_LIST_ID = 'test-list-id';
+
 describe('RelationshipService', () => {
   beforeEach(() => {
     jest.clearAllMocks();
@@ -91,21 +94,21 @@ describe('RelationshipService', () => {
 
   describe('createTaskRelationship', () => {
     it('should reject missing required fields', async () => {
-      const result1 = await relationshipService.createTaskRelationship(null, 'B', 'blocks');
+      const result1 = await relationshipService.createTaskRelationship(TEST_LIST_ID, null, 'B', 'blocks');
       expect(result1.success).toBe(false);
       expect(result1.error).toContain('Missing required fields');
 
-      const result2 = await relationshipService.createTaskRelationship('A', null, 'blocks');
+      const result2 = await relationshipService.createTaskRelationship(TEST_LIST_ID, 'A', null, 'blocks');
       expect(result2.success).toBe(false);
       expect(result2.error).toContain('Missing required fields');
 
-      const result3 = await relationshipService.createTaskRelationship('A', 'B', null);
+      const result3 = await relationshipService.createTaskRelationship(TEST_LIST_ID, 'A', 'B', null);
       expect(result3.success).toBe(false);
       expect(result3.error).toContain('Missing required fields');
     });
 
     it('should reject self-referencing relationships', async () => {
-      const result = await relationshipService.createTaskRelationship('A', 'A', 'blocks');
+      const result = await relationshipService.createTaskRelationship(TEST_LIST_ID, 'A', 'A', 'blocks');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Cannot create relationship to self');
@@ -122,7 +125,7 @@ describe('RelationshipService', () => {
       });
 
       // Trying to create C -> A would create a cycle
-      const result = await relationshipService.createTaskRelationship('C', 'A', 'blocks');
+      const result = await relationshipService.createTaskRelationship(TEST_LIST_ID, 'C', 'A', 'blocks');
 
       expect(result.success).toBe(false);
       expect(result.error).toContain('circular dependency');
@@ -148,6 +151,7 @@ describe('RelationshipService', () => {
       });
 
       const result = await relationshipService.createTaskRelationship(
+        TEST_LIST_ID,
         'A',
         'B',
         'blocks',
@@ -171,7 +175,7 @@ describe('RelationshipService', () => {
         data: [{ id: 'A', relationships: [] }],
       });
 
-      const result = await relationshipService.createTaskRelationship('A', 'NonExistent', 'blocks');
+      const result = await relationshipService.createTaskRelationship(TEST_LIST_ID, 'A', 'NonExistent', 'blocks');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Target task not found');
@@ -189,7 +193,7 @@ describe('RelationshipService', () => {
         ],
       });
 
-      const result = await relationshipService.getAllRelationships();
+      const result = await relationshipService.getAllRelationships(TEST_LIST_ID);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(2);
@@ -203,7 +207,7 @@ describe('RelationshipService', () => {
         data: [{ id: 'A' }, { id: 'B', relationships: [] }],
       });
 
-      const result = await relationshipService.getAllRelationships();
+      const result = await relationshipService.getAllRelationships(TEST_LIST_ID);
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(0);
@@ -220,7 +224,7 @@ describe('RelationshipService', () => {
         ],
       });
 
-      const result = await relationshipService.getTaskRelationships('A');
+      const result = await relationshipService.getTaskRelationships(TEST_LIST_ID, 'A');
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
@@ -233,7 +237,7 @@ describe('RelationshipService', () => {
         data: [{ id: 'A', relationships: [{ id: 'rel-1', fromTaskId: 'A', toTaskId: 'B' }] }],
       });
 
-      const result = await relationshipService.getTaskRelationships('B');
+      const result = await relationshipService.getTaskRelationships(TEST_LIST_ID, 'B');
 
       expect(result.success).toBe(true);
       expect(result.data).toHaveLength(1);
@@ -258,10 +262,10 @@ describe('RelationshipService', () => {
 
       mockUpdateTask.mockResolvedValue({ success: true });
 
-      const result = await relationshipService.deleteRelationship('rel-1');
+      const result = await relationshipService.deleteRelationship(TEST_LIST_ID, 'rel-1');
 
       expect(result.success).toBe(true);
-      expect(mockUpdateTask).toHaveBeenCalledWith('A', {
+      expect(mockUpdateTask).toHaveBeenCalledWith(TEST_LIST_ID, 'A', {
         relationships: [{ id: 'rel-2', toTaskId: 'C' }],
       });
     });
@@ -272,7 +276,7 @@ describe('RelationshipService', () => {
         data: [{ id: 'A', relationships: [{ id: 'rel-1', toTaskId: 'B' }] }],
       });
 
-      const result = await relationshipService.deleteRelationship('non-existent');
+      const result = await relationshipService.deleteRelationship(TEST_LIST_ID, 'non-existent');
 
       expect(result.success).toBe(false);
       expect(result.error).toBe('Relationship not found');

@@ -6,9 +6,9 @@ class ExplorationService {
     this.explorationTag = 'PMT_EXPLORATION';
   }
 
-  async getAllExplorations() {
+  async getAllExplorations(todoListId) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
       const query = `
         query GetExplorationTodos($todoListId: String!) {
@@ -58,9 +58,9 @@ class ExplorationService {
     }
   }
 
-  async saveExploration(explorationData) {
+  async saveExploration(todoListId, explorationData) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
       // Strip binary data: URIs from reflection entries to reduce payload
       const cleanedData = this._stripBinaryData(explorationData);
@@ -99,7 +99,7 @@ class ExplorationService {
     }
   }
 
-  async updateExploration(blueId, explorationData) {
+  async updateExploration(todoListId, blueId, explorationData) {
     try {
       const cleanedData = this._stripBinaryData(explorationData);
       const jsonString = JSON.stringify(cleanedData);
@@ -132,7 +132,7 @@ class ExplorationService {
     }
   }
 
-  async deleteExploration(blueId) {
+  async deleteExploration(todoListId, blueId) {
     try {
       const mutation = `
         mutation DeleteExplorationTodo($input: DeleteTodoInput!) {

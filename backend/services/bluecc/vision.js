@@ -15,9 +15,13 @@ class VisionService {
    * Get all vision data for a user
    * Returns structured vision data by dimension and element
    */
-  async getAllVisions() {
+  async _resolveTodoListId(todoListId) {
+    return todoListId || (await coreClient.getDefaultTodoListId());
+  }
+
+  async getAllVisions(todoListId) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
 
       const query = `
         query GetVisionTodos($todoListId: String!) {
@@ -94,9 +98,9 @@ class VisionService {
   /**
    * Save or update a vision entry
    */
-  async saveVision(dimension, data, elementId = null) {
+  async saveVision(todoListId, dimension, data, elementId = null) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
 
       if (!elementId) {
         // Save overall vision
@@ -140,9 +144,9 @@ class VisionService {
   /**
    * Delete a vision entry
    */
-  async deleteVision(dimension, elementId = null, type = null) {
+  async deleteVision(todoListId, dimension, elementId = null, type = null) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = await this._resolveTodoListId(todoListId);
       const todos = await this._findVisionTodos(dimension, elementId, type, todoListId);
 
       if (todos.length === 0) {
@@ -171,7 +175,7 @@ class VisionService {
       return await this._updateTodo(existing[0].id, text);
     } else {
       // Create new
-      return await this._createVisionTodo(title, text, [this.visionTag, dimension]);
+      return await this._createVisionTodo(title, text, [this.visionTag, dimension], todoListId);
     }
   }
 
@@ -189,7 +193,7 @@ class VisionService {
         dimension,
         elementId,
         type,
-      ]);
+      ], todoListId);
     }
   }
 
@@ -236,8 +240,8 @@ class VisionService {
     });
   }
 
-  async _createVisionTodo(title, text, tagNames) {
-    const todoListId = await coreClient.getDefaultTodoListId();
+  async _createVisionTodo(title, text, tagNames, todoListId) {
+    todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
     // Get or create all tags
     const tagIds = await Promise.all(tagNames.map((name) => this._getOrCreateTag(name)));

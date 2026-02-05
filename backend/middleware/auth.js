@@ -137,6 +137,12 @@ export const authenticateToken = async (req, res, next) => {
       }
     }
 
+    // ─── Guard: require todoListId ─────────────────────────────
+    if (!todoListId) {
+      console.error(`User ${authUser.id} has no todoListId after provisioning attempt`);
+      return res.status(503).json({ error: 'Workspace not ready. Please try again.' });
+    }
+
     // ─── Attach User to Request ──────────────────────────────
     req.user = {
       id: authUser.id,

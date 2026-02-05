@@ -1,10 +1,10 @@
 import taskService from './tasks.js';
 
 class LaunchService {
-  async linkTaskToMilestone(taskId, milestoneId) {
+  async linkTaskToMilestone(todoListId, taskId, milestoneId) {
     try {
       // 1. Get task
-      const tasksRes = await taskService.getTasks();
+      const tasksRes = await taskService.getTasks(todoListId);
       if (!tasksRes.success) return { success: false, error: tasksRes.error };
 
       const task = tasksRes.data.find((t) => t.id === taskId);
@@ -20,7 +20,7 @@ class LaunchService {
       const updatedMilestones = [...currentMilestones, milestoneId];
 
       // 3. Update task (taskService.updateTask handles CF update)
-      const updateRes = await taskService.updateTask(taskId, { milestones: updatedMilestones });
+      const updateRes = await taskService.updateTask(todoListId, taskId, { milestones: updatedMilestones });
       if (!updateRes.success) return { success: false, error: updateRes.error };
 
       return {
@@ -36,9 +36,9 @@ class LaunchService {
     }
   }
 
-  async getTasksForMilestone(milestoneId) {
+  async getTasksForMilestone(todoListId, milestoneId) {
     try {
-      const tasksResult = await taskService.getTasks();
+      const tasksResult = await taskService.getTasks(todoListId);
       if (!tasksResult.success) {
         return { success: false, error: tasksResult.error };
       }
@@ -52,8 +52,8 @@ class LaunchService {
     }
   }
 
-  async getMilestoneProgress(milestoneId) {
-    const result = await this.getTasksForMilestone(milestoneId);
+  async getMilestoneProgress(todoListId, milestoneId) {
+    const result = await this.getTasksForMilestone(todoListId, milestoneId);
     if (!result.success) {
       return { success: false, error: result.error };
     }
@@ -69,8 +69,8 @@ class LaunchService {
     return { success: true, data: { progress, total: tasks.length, completed } };
   }
 
-  async calculateReadiness() {
-    const tasksResult = await taskService.getTasks();
+  async calculateReadiness(todoListId) {
+    const tasksResult = await taskService.getTasks(todoListId);
     const tasks = tasksResult.success ? tasksResult.data : [];
     const completedTasks = tasks.filter((t) => t.status === 'Done');
 

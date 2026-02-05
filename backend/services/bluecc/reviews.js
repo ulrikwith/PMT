@@ -6,9 +6,9 @@ class ReviewService {
     this.reviewTag = 'PMT_REVIEW';
   }
 
-  async getReviews() {
+  async getReviews(todoListId) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
       const query = `
         query GetReviewTodos($todoListId: String!) {
@@ -58,9 +58,9 @@ class ReviewService {
     }
   }
 
-  async saveReview(reviewData) {
+  async saveReview(todoListId, reviewData) {
     try {
-      const todoListId = await coreClient.getDefaultTodoListId();
+      todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
       // Encode review as Base64 JSON
       const jsonString = JSON.stringify(reviewData);

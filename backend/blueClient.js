@@ -8,8 +8,9 @@ import reviewService from './services/bluecc/reviews.js';
 import explorationService from './services/bluecc/exploration.js';
 
 // Facade to maintain original API surface
+// Sprint 2: todoListId is now the first parameter for all data-access methods
 const blueClient = {
-  // Core
+  // Core (no todoListId needed — infrastructure methods)
   query: (q, v, o) => coreClient.query(q, v, o),
   testConnection: () => coreClient.testConnection(),
   ensureWorkspace: () => coreClient.ensureWorkspace(),
@@ -20,45 +21,45 @@ const blueClient = {
   executeQuery: (q, v) => coreClient.query(q, v),
 
   // Tasks
-  getTasks: (f) => taskService.getTasks(f),
-  createTask: (d) => taskService.createTask(d),
-  updateTask: (id, u) => taskService.updateTask(id, u),
-  deleteTask: (id, p) => taskService.deleteTask(id, p),
-  restoreTask: (id) => taskService.restoreTask(id),
-  getDeletedTasks: () => taskService.getDeletedTasks(),
-  emptyTrash: (d) => taskService.emptyTrash(d),
+  getTasks: (todoListId, f) => taskService.getTasks(todoListId, f),
+  createTask: (todoListId, d) => taskService.createTask(todoListId, d),
+  updateTask: (todoListId, id, u) => taskService.updateTask(todoListId, id, u),
+  deleteTask: (todoListId, id, p) => taskService.deleteTask(todoListId, id, p),
+  restoreTask: (todoListId, id) => taskService.restoreTask(todoListId, id),
+  getDeletedTasks: (todoListId) => taskService.getDeletedTasks(todoListId),
+  emptyTrash: (todoListId, d) => taskService.emptyTrash(todoListId, d),
 
-  // Tags
+  // Tags (global — not scoped to todoListId)
   getTags: () => tagService.getTags(),
   createTag: (n, c) => tagService.createTag(n, c),
   addTagToTask: (id, n) => tagService.addTagToTask(id, n),
 
   // Relationships
-  createTaskRelationship: (f, t, y, l) => relationshipService.createTaskRelationship(f, t, y, l),
-  getAllRelationships: () => relationshipService.getAllRelationships(),
-  getTaskRelationships: (id) => relationshipService.getTaskRelationships(id),
-  deleteRelationship: (id) => relationshipService.deleteRelationship(id),
+  createTaskRelationship: (todoListId, f, t, y, l) => relationshipService.createTaskRelationship(todoListId, f, t, y, l),
+  getAllRelationships: (todoListId) => relationshipService.getAllRelationships(todoListId),
+  getTaskRelationships: (todoListId, id) => relationshipService.getTaskRelationships(todoListId, id),
+  deleteRelationship: (todoListId, id) => relationshipService.deleteRelationship(todoListId, id),
 
   // Launch/Milestones
-  linkTaskToMilestone: (ti, mi) => launchService.linkTaskToMilestone(ti, mi),
-  getTasksForMilestone: (id) => launchService.getTasksForMilestone(id),
-  getMilestoneProgress: (id) => launchService.getMilestoneProgress(id),
-  calculateReadiness: () => launchService.calculateReadiness(),
+  linkTaskToMilestone: (todoListId, ti, mi) => launchService.linkTaskToMilestone(todoListId, ti, mi),
+  getTasksForMilestone: (todoListId, id) => launchService.getTasksForMilestone(todoListId, id),
+  getMilestoneProgress: (todoListId, id) => launchService.getMilestoneProgress(todoListId, id),
+  calculateReadiness: (todoListId) => launchService.calculateReadiness(todoListId),
 
   // Vision
-  getAllVisions: () => visionService.getAllVisions(),
-  saveVision: (dim, data, elemId) => visionService.saveVision(dim, data, elemId),
-  deleteVision: (dim, elemId, type) => visionService.deleteVision(dim, elemId, type),
+  getAllVisions: (todoListId) => visionService.getAllVisions(todoListId),
+  saveVision: (todoListId, dim, data, elemId) => visionService.saveVision(todoListId, dim, data, elemId),
+  deleteVision: (todoListId, dim, elemId, type) => visionService.deleteVision(todoListId, dim, elemId, type),
 
   // Reviews
-  getReviews: () => reviewService.getReviews(),
-  saveReview: (data) => reviewService.saveReview(data),
+  getReviews: (todoListId) => reviewService.getReviews(todoListId),
+  saveReview: (todoListId, data) => reviewService.saveReview(todoListId, data),
 
   // Explorations
-  getAllExplorations: () => explorationService.getAllExplorations(),
-  saveExploration: (data) => explorationService.saveExploration(data),
-  updateExploration: (id, data) => explorationService.updateExploration(id, data),
-  deleteExploration: (id) => explorationService.deleteExploration(id),
+  getAllExplorations: (todoListId) => explorationService.getAllExplorations(todoListId),
+  saveExploration: (todoListId, data) => explorationService.saveExploration(todoListId, data),
+  updateExploration: (todoListId, id, data) => explorationService.updateExploration(todoListId, id, data),
+  deleteExploration: (todoListId, id) => explorationService.deleteExploration(todoListId, id),
 
   // Utils (exposed if needed)
   formatDate: (d) => coreClient.formatDate(d),
