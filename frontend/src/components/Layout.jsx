@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet } from 'react-router-dom';
 import Header from './Header';
 import Sidebar from './Sidebar';
 import ShortcutsModal from './ShortcutsModal';
@@ -11,13 +11,8 @@ import { CreateTaskProvider, useCreateTask } from '../context/CreateTaskContext'
 function LayoutContent() {
   const [showShortcuts, setShowShortcuts] = useState(false);
   const { isOpen, initialData, closeCreateTask } = useCreateTask();
-  const navigate = useNavigate();
 
   useKeyboardShortcuts(() => setShowShortcuts((prev) => !prev));
-
-  const handleTaskCreated = () => {
-    window.dispatchEvent(new Event('task-created'));
-  };
 
   return (
     <div className="min-h-screen bg-slate-950 text-slate-200 flex flex-col">
@@ -33,7 +28,6 @@ function LayoutContent() {
         isOpen={isOpen}
         onClose={closeCreateTask}
         initialData={initialData}
-        onTaskCreated={handleTaskCreated}
       />
     </div>
   );

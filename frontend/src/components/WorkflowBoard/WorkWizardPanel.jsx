@@ -68,7 +68,14 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
     const dimConfig = getDimensionConfig(node.data.dimension);
     const dimElements = dimConfig ? dimConfig.elements.map((e) => e.label) : []; // Use labels for matching/display
 
-    const rawElement = node.data.element || '';
+    let rawElement = node.data.element || '';
+    
+    // If no element set (new project), try to load last used element for this dimension
+    if (!rawElement) {
+        const lastUsed = localStorage.getItem(`pmt_last_element_${node.data.dimension}`);
+        if (lastUsed) rawElement = lastUsed;
+    }
+
     // Try to find matching label case-insensitively
     const matchedElement =
       dimElements.find((e) => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
@@ -124,6 +131,11 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
     // If saving 'New Work' with no name, default it
     const finalLabel = workData.label.trim() || 'New Work';
+
+    // Persist the element selection for future new projects in this dimension
+    if (workData.element) {
+        localStorage.setItem(`pmt_last_element_${workData.dimension}`, workData.element);
+    }
 
     onSave({
       ...workData,
@@ -217,11 +229,20 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
             <div>
               <label className="block text-sm font-medium text-slate-300 mb-2">
-                {workData.dimension.charAt(0).toUpperCase() + workData.dimension.slice(1)} Type
+                {getDimensionConfig(workData.dimension)?.label || workData.dimension} Element
               </label>
-              <div className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white">
-                {workData.element || 'Not set'}
-              </div>
+              <select
+                value={workData.element}
+                onChange={(e) => setWorkData({ ...workData, element: e.target.value })}
+                className="w-full px-4 py-3 bg-slate-900/60 border border-white/10 rounded-lg text-white focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 focus:outline-none transition-all"
+              >
+                <option value="">Select Element...</option>
+                {getElements(workData.dimension).map((el) => (
+                  <option key={el} value={el}>
+                    {el}
+                  </option>
+                ))}
+              </select>
             </div>
           </div>
         )}
@@ -233,20 +254,32 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
               <h3 className="text-lg font-semibold text-white">Activities</h3>
               <button
                 onClick={() => {
-                  setWorkData({
-                    ...workData,
-                    activities: [
-                      ...workData.activities,
-                      {
-                        id: Date.now(),
-                        title: '',
-                        startDate: '',
-                        endDate: '',
-                        timeEstimate: '',
-                        energyLevel: 'focused',
-                        status: 'todo',
-                      },
-                    ],
+                  setWorkData((prev) => {
+                    const lastActivity = prev.activities[prev.activities.length - 1];
+                    let defaultStartDate = new Date().toISOString().split('T')[0];
+
+                    if (lastActivity && lastActivity.endDate) {
+                        const date = new Date(lastActivity.endDate);
+                        if (!isNaN(date.getTime())) {
+                            defaultStartDate = lastActivity.endDate;
+                        }
+                    }
+
+                    return {
+                      ...prev,
+                      activities: [
+                        ...prev.activities,
+                        {
+                          id: Date.now(),
+                          title: '',
+                          startDate: defaultStartDate,
+                          endDate: '',
+                          timeEstimate: '',
+                          energyLevel: 'focused',
+                          status: 'todo',
+                        },
+                      ],
+                    };
                   });
                 }}
                 className="px-3 py-1.5 bg-blue-500/20 border border-blue-500/30 text-blue-500 rounded-lg hover:bg-blue-500/30 transition-all flex items-center gap-2 text-sm"
@@ -299,32 +332,40 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                         <label className="text-xs text-slate-400 font-medium mb-1.5 block text-center">
                           Start
                         </label>
-                        <input
-                          type="date"
-                          value={activity.startDate || ''}
-                          onChange={(e) => {
-                            const updated = [...workData.activities];
-                            updated[index].startDate = e.target.value;
-                            setWorkData({ ...workData, activities: updated });
-                          }}
-                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
-                        />
-                      </div>
-                      <div className="flex-1">
-                        <label className="text-xs text-slate-400 font-medium mb-1.5 block text-center">
-                          End
-                        </label>
-                        <input
-                          type="date"
-                          value={activity.endDate || ''}
-                          onChange={(e) => {
-                            const updated = [...workData.activities];
-                            updated[index].endDate = e.target.value;
-                            setWorkData({ ...workData, activities: updated });
-                          }}
-                          className="w-full bg-slate-800/40 border border-slate-700/60 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30"
-                        />
-                      </div>
+                          <input
+                            type="date"
+                            value={activity.startDate || ''}
+                            onChange={(e) => {
+                              const newStart = e.target.value;
+                              const updated = [...workData.activities];
+                              updated[index].startDate = newStart;
+                              
+                              // If end date exists and is before new start date, update it
+                              if (updated[index].endDate && updated[index].endDate < newStart) {
+                                updated[index].endDate = newStart;
+                              }
+                              
+                              setWorkData({ ...workData, activities: updated });
+                            }}
+                            className="w-full bg-slate-950/50 border border-slate-800 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                          />
+                        </div>
+                        <div className="flex-1">
+                          <label className="text-xs text-slate-400 font-bold mb-1.5 block text-right">
+                            End
+                          </label>
+                          <input
+                            type="date"
+                            value={activity.endDate || ''}
+                            min={activity.startDate}
+                            onChange={(e) => {
+                              const updated = [...workData.activities];
+                              updated[index].endDate = e.target.value;
+                              setWorkData({ ...workData, activities: updated });
+                            }}
+                            className="w-full bg-slate-900/40 border border-slate-800 rounded-md px-3 py-2 text-sm text-slate-200 focus:outline-none focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/30 transition-all"
+                          />
+                        </div>
                     </div>
                   </div>
 
@@ -492,7 +533,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
                 <div className="flex flex-wrap gap-2">
                   {workData.resources.tools?.map((tool, index) => (
                     <span
-                      key={index}
+                      key={tool}
                       className="px-3 py-1.5 bg-purple-500/10 border border-purple-500/20 rounded-full text-xs font-medium text-purple-500 flex items-center gap-2"
                     >
                       {tool}

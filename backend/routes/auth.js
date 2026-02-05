@@ -8,8 +8,9 @@ const router = express.Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'pmt-secret-key-change-in-prod';
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
-// 🚧 TEMPORARY BYPASS - Set to true to disable authentication
-const BYPASS_AUTH = true;
+// Auth bypass: active in development, disabled in production
+// Set BYPASS_AUTH=true in .env to force-enable in any environment
+const BYPASS_AUTH = process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV !== 'production';
 
 // 1. Register (Ordinary Email)
 router.post('/register', async (req, res) => {

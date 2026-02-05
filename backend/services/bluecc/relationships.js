@@ -50,6 +50,12 @@ class RelationshipService {
         return { success: false, error: 'Missing required fields: fromTaskId, toTaskId, or type' };
       }
 
+      // Validate relationship type
+      const VALID_TYPES = ['feeds-into', 'comes-from', 'related-to', 'blocks'];
+      if (!VALID_TYPES.includes(type)) {
+        return { success: false, error: `Invalid relationship type: "${type}". Must be one of: ${VALID_TYPES.join(', ')}` };
+      }
+
       // Prevent self-referencing
       if (fromTaskId === toTaskId) {
         return { success: false, error: 'Cannot create relationship to self' };

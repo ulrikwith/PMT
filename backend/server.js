@@ -204,7 +204,13 @@ app.post('/api/trash/:id/restore', async (req, res) => {
 });
 
 app.delete('/api/trash', async (req, res) => {
-  const olderThanDays = req.query.olderThanDays ? parseInt(req.query.olderThanDays) : null;
+  let olderThanDays = null;
+  if (req.query.olderThanDays) {
+    olderThanDays = parseInt(req.query.olderThanDays, 10);
+    if (isNaN(olderThanDays) || olderThanDays < 0) {
+      return res.status(400).json({ error: 'olderThanDays must be a non-negative integer' });
+    }
+  }
   const result = await blueClient.emptyTrash(olderThanDays);
   if (result.success) {
     res.json(result.data);
@@ -291,6 +297,42 @@ app.delete('/api/relationships/:id', async (req, res) => {
   }
 });
 
+// --- Visions ---
+
+app.get('/api/visions', async (req, res) => {
+  const result = await blueClient.getAllVisions();
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.put('/api/visions/:dimension', async (req, res) => {
+  const { dimension } = req.params;
+  const { data, elementId } = req.body;
+  if (!data) {
+    return res.status(400).json({ error: 'Vision data is required' });
+  }
+  const result = await blueClient.saveVision(dimension, data, elementId || null);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.delete('/api/visions/:dimension', async (req, res) => {
+  const { dimension } = req.params;
+  const { elementId, type } = req.query;
+  const result = await blueClient.deleteVision(dimension, elementId || null, type || null);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
 // --- GraphQL Passthrough ---
 
 app.post('/api/graphql', async (req, res) => {
@@ -312,5 +354,10 @@ app.use((err, req, res, next) => {
 // Start server
 app.listen(PORT, async () => {
   console.log(`PMT Backend running on http://localhost:${PORT}`);
-  await blueClient.testConnection();
+  try {
+    await blueClient.testConnection();
+  } catch (err) {
+    console.warn('Warning: Initial connection test failed:', err.message);
+    console.warn('Server will continue running. Connection will be retried on first request.');
+  }
 });

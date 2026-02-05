@@ -4,6 +4,7 @@ import tagService from './services/bluecc/tags.js';
 import relationshipService from './services/bluecc/relationships.js';
 import launchService from './services/bluecc/launch.js';
 import commentService from './services/bluecc/comments.js';
+import visionService from './services/bluecc/vision.js';
 
 // Facade to maintain original API surface
 const blueClient = {
@@ -47,6 +48,11 @@ const blueClient = {
   getTasksForMilestone: (id) => launchService.getTasksForMilestone(id),
   getMilestoneProgress: (id) => launchService.getMilestoneProgress(id),
   calculateReadiness: () => launchService.calculateReadiness(),
+
+  // Vision
+  getAllVisions: () => visionService.getAllVisions(),
+  saveVision: (dim, data, elemId) => visionService.saveVision(dim, data, elemId),
+  deleteVision: (dim, elemId, type) => visionService.deleteVision(dim, elemId, type),
 
   // Utils (exposed if needed)
   formatDate: (d) => coreClient.formatDate(d),

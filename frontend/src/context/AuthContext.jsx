@@ -8,8 +8,9 @@ const API_URL = '/api/auth';
 // Google Client ID should be in env, using placeholder or passed from config
 const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID'; // User needs to provide this
 
-// 🚧 TEMPORARY BYPASS - Set to true to disable authentication
-const BYPASS_AUTH = true;
+// Auth bypass: active in development, disabled in production builds
+// Set VITE_BYPASS_AUTH=true in .env to force-enable in any environment
+const BYPASS_AUTH = import.meta.env.VITE_BYPASS_AUTH === 'true' || import.meta.env.DEV;
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);

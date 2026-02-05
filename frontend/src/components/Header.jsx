@@ -10,17 +10,18 @@ export default function Header() {
   const { breadcrumbs } = useBreadcrumbs();
 
   useEffect(() => {
+    let mounted = true;
+    const checkConnection = async () => {
+      try {
+        const health = await api.getHealth();
+        if (mounted) setConnectionMode(health.mode || 'local');
+      } catch {
+        if (mounted) setConnectionMode('offline');
+      }
+    };
     checkConnection();
+    return () => { mounted = false; };
   }, []);
-
-  const checkConnection = async () => {
-    try {
-      const health = await api.getHealth();
-      setConnectionMode(health.mode || 'local');
-    } catch {
-      setConnectionMode('offline');
-    }
-  };
 
   const handleExport = () => {
     if (window.confirm('Download full project export (JSON)?')) {

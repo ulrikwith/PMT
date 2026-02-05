@@ -1,66 +1,47 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Trash2, RotateCcw, AlertTriangle, Clock } from 'lucide-react';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { useTasks } from '../context/TasksContext';
-import api from '../services/api';
 
 export default function TrashPage() {
-  const [deletedTasks, setDeletedTasks] = useState([]);
-  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [confirmEmpty, setConfirmEmpty] = useState(false);
   const { setBreadcrumbs } = useBreadcrumbs();
-  const { refreshData } = useTasks();
-
-  const loadTrash = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await api.getTrash();
-      setDeletedTasks(Array.isArray(data) ? data : []);
-      setError(null);
-    } catch (err) {
-      console.error('Failed to load trash:', err);
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  const { deletedTasks, loading, restoreTask, deleteTask, emptyTrash } = useTasks();
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Trash', icon: Trash2 }]);
-    loadTrash();
     return () => setBreadcrumbs([]);
-  }, [setBreadcrumbs, loadTrash]);
+  }, [setBreadcrumbs]);
 
   const handleRestore = async (taskId) => {
     try {
-      await api.restoreTask(taskId);
-      setDeletedTasks((prev) => prev.filter((t) => t.id !== taskId));
-      refreshData(); // Refresh main task list
+      await restoreTask(taskId);
+      setError(null);
     } catch (err) {
       console.error('Failed to restore task:', err);
-      setError('Failed to restore task');
+      setError(`Failed to restore task: ${err.message}`);
     }
   };
 
   const handlePermanentDelete = async (taskId) => {
     try {
-      await api.permanentlyDeleteTask(taskId);
-      setDeletedTasks((prev) => prev.filter((t) => t.id !== taskId));
+      await deleteTask(taskId, true); // permanent = true
+      setError(null);
     } catch (err) {
       console.error('Failed to delete task:', err);
-      setError('Failed to permanently delete task');
+      setError(`Failed to permanently delete task: ${err.message}`);
     }
   };
 
   const handleEmptyTrash = async () => {
     try {
-      await api.emptyTrash();
-      setDeletedTasks([]);
+      await emptyTrash();
       setConfirmEmpty(false);
+      setError(null);
     } catch (err) {
       console.error('Failed to empty trash:', err);
-      setError('Failed to empty trash');
+      setError(`Failed to empty trash: ${err.message}`);
     }
   };
 

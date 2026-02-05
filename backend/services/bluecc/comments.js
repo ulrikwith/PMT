@@ -51,12 +51,12 @@ class CommentService {
       });
 
       if (!result.success) {
-        return { success: true, data: [] }; // Return empty list on failure to avoid breaking callers
+        return { success: false, error: result.error || 'Failed to fetch comments' };
       }
 
       return { success: true, data: result.data.commentList || [] };
     } catch (error) {
-      return { success: true, data: [] };
+      return { success: false, error: error.message };
     }
   }
 
