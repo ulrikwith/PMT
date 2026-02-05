@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import blueClient from './blueClient.js';
 import { LAUNCH_PHASES } from './launchData.js';
 import authRoutes from './routes/auth.js';
+import wpWebhookRoutes from './routes/wp-webhook.js';
 import { authenticateToken } from './middleware/auth.js';
 import assetService from './services/assetService.js';
 
@@ -32,6 +33,9 @@ app.use((req, res, next) => {
 
 // Auth Routes (login, register, etc. — no middleware needed)
 app.use('/api/auth', authRoutes);
+
+// WordPress/WooCommerce Webhook (public — verified by HMAC signature)
+app.use('/api/webhooks/woocommerce', wpWebhookRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -158,4 +158,12 @@ export const authenticateToken = async (req, res, next) => {
   }
 };
 
+/**
+ * Clear a user's cached profile entry.
+ * Used by webhook routes after updating a profile externally.
+ */
+export function clearProfileCache(userId) {
+  profileCache.delete(userId);
+}
+
 export default authenticateToken;
