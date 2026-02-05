@@ -82,7 +82,7 @@ class TaskService {
       }
 
       let tasks = result.data.todoList.todos.map((todo) => {
-        const source = todo.html && todo.html.includes('---PMT-META---') ? todo.html : todo.text;
+        const source = (todo.html && todo.html.includes('---PMT-META---')) ? todo.html : (todo.text || '');
         const { description, metadata } = parseTaskText(source);
 
         // Parse Custom Fields
@@ -411,6 +411,62 @@ class TaskService {
           }
         } catch (e) {
           console.error('Error updating custom fields:', e);
+        }
+
+        // Handle Tag Updates (sync tags including element/dimension tags)
+        if (updates.tags !== undefined) {
+          try {
+            // Get current tags from Blue.cc
+            const tagQuery = `query GetTodoTags($id: String!) { todo(id: $id) { tags { id title } } }`;
+            const tagResult = await coreClient.query(tagQuery, { id: taskId });
+
+            const currentTags = tagResult.success && tagResult.data.todo?.tags
+              ? tagResult.data.todo.tags
+              : [];
+
+            const currentTagNames = currentTags.map((t) => t.title);
+            const desiredTagNames = updates.tags.filter(Boolean);
+
+            // Only sync if tags actually changed
+            const tagsChanged =
+              currentTagNames.length !== desiredTagNames.length ||
+              !currentTagNames.every((t) => desiredTagNames.includes(t)) ||
+              !desiredTagNames.every((t) => currentTagNames.includes(t));
+
+            if (tagsChanged) {
+              // Resolve desired tag names to IDs (create if needed)
+              const allTags = await tagsService.getTags();
+              const tagMap = {};
+              if (allTags.success) {
+                allTags.data.forEach((t) => { tagMap[t.name] = t.id; });
+              }
+
+              const desiredTagIds = [];
+              for (const tagName of desiredTagNames) {
+                if (tagMap[tagName]) {
+                  desiredTagIds.push(tagMap[tagName]);
+                } else {
+                  // Create the tag
+                  const createResult = await tagsService.createTag(tagName);
+                  if (createResult.success) {
+                    desiredTagIds.push(createResult.data.id);
+                  }
+                }
+              }
+
+              // Set the exact set of tags on the task
+              const setMutation = `
+                mutation SetTodoTags($input: SetTodoTagsInput!) {
+                  setTodoTags(input: $input)
+                }
+              `;
+              await coreClient.query(setMutation, {
+                input: { todoId: taskId, tagIds: desiredTagIds },
+              });
+            }
+          } catch (e) {
+            console.error('Error syncing tags:', e);
+          }
         }
 
         if (Object.keys(input).length > 1) {

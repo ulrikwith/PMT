@@ -1,14 +1,15 @@
 import supabase from '../services/supabase.js';
 import coreClient from '../services/bluecc/core.js';
 
-// Auth bypass: active in development, disabled in production
-const BYPASS_AUTH = process.env.BYPASS_AUTH === 'true' || process.env.NODE_ENV !== 'production';
+// Auth bypass: only active when explicitly enabled AND not in production
+const BYPASS_AUTH = process.env.BYPASS_AUTH === 'true' && process.env.NODE_ENV !== 'production';
 
 // ─── Profile Cache ────────────────────────────────────────────
 // In-memory cache to avoid hitting Supabase on every request.
 // Key: user UUID, Value: { profile, expiresAt }
 const profileCache = new Map();
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const CACHE_MAX_SIZE = 1000; // Prevent unbounded growth
 
 function getCachedProfile(userId) {
   const entry = profileCache.get(userId);
@@ -20,6 +21,11 @@ function getCachedProfile(userId) {
 }
 
 function setCachedProfile(userId, profile) {
+  // Evict oldest entry if cache is full
+  if (profileCache.size >= CACHE_MAX_SIZE) {
+    const oldestKey = profileCache.keys().next().value;
+    profileCache.delete(oldestKey);
+  }
   profileCache.set(userId, {
     profile,
     expiresAt: Date.now() + CACHE_TTL_MS,

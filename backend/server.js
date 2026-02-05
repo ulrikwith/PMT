@@ -17,11 +17,18 @@ const PORT = process.env.PORT || 3001;
 
 app.use(
   cors({
-    origin: process.env.APP_URL || 'http://localhost:5173',
+    origin: process.env.APP_URL || 'http://localhost:3002',
     credentials: true, // Required for Supabase auth cookies
   })
 );
-app.use(express.json());
+app.use(express.json({
+  // Preserve raw body for webhook HMAC verification
+  verify: (req, res, buf) => {
+    if (req.url.startsWith('/api/webhooks/')) {
+      req.rawBody = buf.toString();
+    }
+  },
+}));
 
 // Request logging
 app.use((req, res, next) => {
@@ -487,7 +494,8 @@ app.put('/api/assets/:id/phase', async (req, res) => {
   if (result.success) {
     res.json(result.data);
   } else {
-    res.status(result.error.includes('Invalid phase') ? 400 : 500).json({ error: result.error });
+    const statusCode = (typeof result.error === 'string' && result.error.includes('Invalid phase')) ? 400 : 500;
+    res.status(statusCode).json({ error: result.error });
   }
 });
 

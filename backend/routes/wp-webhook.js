@@ -24,9 +24,12 @@ function verifyWooCommerceSignature(req, res, next) {
     return res.status(401).json({ error: 'Missing webhook signature' });
   }
 
+  // Use raw body if available (preserves original JSON formatting for correct HMAC),
+  // otherwise fall back to re-serialized body
+  const payload = req.rawBody || JSON.stringify(req.body);
   const hash = crypto
     .createHmac('sha256', secret)
-    .update(JSON.stringify(req.body))
+    .update(payload)
     .digest('base64');
 
   if (hash !== signature) {
@@ -167,7 +170,7 @@ router.post('/', verifyWooCommerceSignature, async (req, res) => {
     }
 
     // ─── Step 5: Generate magic link ────────────────────────
-    const appUrl = process.env.APP_URL || 'http://localhost:5173';
+    const appUrl = process.env.APP_URL || 'http://localhost:3002';
     let magicLink = null;
 
     const { data: linkData, error: linkError } =

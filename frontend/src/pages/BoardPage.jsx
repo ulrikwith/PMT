@@ -294,7 +294,8 @@ function BoardPageInner() {
           onExpandToggle: () => toggleExpand(task.id),
           onJumpToWork: (id, dim) => jumpToWork(id, dim),
           onEdit: () => {
-            setSelectedNode({ id: task.id, data: { ...task, label: task.title } });
+            const element = task.tags.find((t) => !dimensionIds.includes(t.toLowerCase()));
+            setSelectedNode({ id: task.id, data: { ...task, label: task.title, element, dimension: activeDimension } });
             setWizardOpen(true);
           },
           onDelete: () => {

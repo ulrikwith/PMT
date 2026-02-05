@@ -26,6 +26,7 @@ const DEBOUNCE_MS = 2000;
 export function ExplorationProvider({ children }) {
   const [visions, setVisions] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [syncErrors, setSyncErrors] = useState({}); // Track failed syncs per vision
   const syncTimers = useRef({});
 
   // Initial Load: API first, localStorage fallback
@@ -105,9 +106,24 @@ export function ExplorationProvider({ children }) {
     setVisions((current) => {
       const vision = current.find((v) => v.id === visionId);
       if (vision?.blueId) {
-        api.updateExploration(vision.blueId, vision).catch((err) =>
-          console.error('Background sync failed:', err)
-        );
+        api.updateExploration(vision.blueId, vision)
+          .then(() => {
+            // Clear any previous sync error on success
+            setSyncErrors((prev) => {
+              if (prev[visionId]) {
+                const { [visionId]: _, ...rest } = prev;
+                return rest;
+              }
+              return prev;
+            });
+          })
+          .catch((err) => {
+            console.error('Background sync failed:', err);
+            setSyncErrors((prev) => ({
+              ...prev,
+              [visionId]: { message: err.message, at: new Date().toISOString() },
+            }));
+          });
       }
       return current; // No state change — read-only access
     });
@@ -444,6 +460,7 @@ export function ExplorationProvider({ children }) {
       value={{
         visions,
         loading,
+        syncErrors,
         createVision,
         updateVision,
         deleteVision,

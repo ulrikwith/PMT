@@ -243,8 +243,20 @@ class VisionService {
   async _createVisionTodo(title, text, tagNames, todoListId) {
     todoListId = todoListId || (await coreClient.getDefaultTodoListId());
 
-    // Get or create all tags
-    const tagIds = await Promise.all(tagNames.map((name) => this._getOrCreateTag(name)));
+    // Batch-fetch all tags once, then resolve or create needed ones (avoids N+1 queries)
+    const tagsResult = await tagsService.getTags();
+    const existingTags = tagsResult.success ? tagsResult.data : [];
+    const tagMap = new Map(existingTags.map((t) => [t.name, t.id]));
+
+    const tagIds = [];
+    for (const name of tagNames) {
+      if (tagMap.has(name)) {
+        tagIds.push(tagMap.get(name));
+      } else {
+        const createResult = await tagsService.createTag(name, '#888888');
+        if (createResult.success) tagIds.push(createResult.data.id);
+      }
+    }
 
     const mutation = `
       mutation CreateVisionTodo($input: CreateTodoInput!) {

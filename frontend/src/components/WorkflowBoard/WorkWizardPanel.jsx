@@ -9,6 +9,7 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
   const { allTools } = useTasks();
   const [step, setStep] = useState(1);
+  const [saving, setSaving] = useState(false); // Prevent double-submit
   const [newTool, setNewTool] = useState(''); // Controlled input for new tool
   const [workData, setWorkData] = useState({
     label: node.data.label !== 'New Work' ? node.data.label : '',
@@ -41,54 +42,59 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
 
   // Reset state when node changes
   useEffect(() => {
-    // 1. Try to load from localStorage first (Draft Persistence)
+    setStep(1);
+    setNewTool('');
+
+    // Resolve the correct element: node.data.element → localStorage fallback → case-insensitive match
+    const dimConfig = getDimensionConfig(node.data.dimension);
+    const dimElements = dimConfig ? dimConfig.elements.map((e) => e.label) : [];
+
+    const resolveElement = (candidateElement) => {
+      let rawElement = candidateElement || node.data.element || '';
+      if (!rawElement) {
+        const lastUsed = localStorage.getItem(`pmt_last_element_${node.data.dimension}`);
+        if (lastUsed) rawElement = lastUsed;
+      }
+      if (!rawElement) return '';
+      return dimElements.find((e) => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
+    };
+
+    // 1. Try to load from localStorage draft first (Draft Persistence)
     const draftKey = `pmt_draft_${node.id}`;
     const savedDraft = localStorage.getItem(draftKey);
 
     if (savedDraft) {
       try {
         const parsed = JSON.parse(savedDraft);
-        setWorkData(parsed);
-        // Don't reset step/tool if we found a draft, assume user wants to continue
-        // But we might want to reset step if it's undefined in draft? 
-        // For now, let's just restore workData and reset step to 1 to be safe, 
-        // or we could save step in draft too. Let's keep step 1 for simplicity unless requested.
-        setStep(1); 
-        setNewTool('');
-        return; 
+        // Validate draft has expected shape before using
+        if (parsed && typeof parsed === 'object' && typeof parsed.label === 'string') {
+          // Always resolve element from authoritative sources — draft may have stale empty value
+          parsed.element = resolveElement(parsed.element);
+          // Ensure required fields exist
+          parsed.activities = Array.isArray(parsed.activities) ? parsed.activities : [];
+          parsed.resources = parsed.resources && typeof parsed.resources === 'object' ? parsed.resources : {};
+          setWorkData(parsed);
+          return;
+        } else {
+          // Draft is malformed — clear it
+          localStorage.removeItem(draftKey);
+        }
       } catch (e) {
-        console.error('Failed to load draft:', e);
+        console.error('Failed to load draft, clearing:', e);
+        localStorage.removeItem(draftKey);
       }
     }
 
-    setStep(1);
-    setNewTool(''); // Reset tool input
-
-    // Case-insensitive element matching
-    const dimConfig = getDimensionConfig(node.data.dimension);
-    const dimElements = dimConfig ? dimConfig.elements.map((e) => e.label) : []; // Use labels for matching/display
-
-    let rawElement = node.data.element || '';
-    
-    // If no element set (new project), try to load last used element for this dimension
-    if (!rawElement) {
-        const lastUsed = localStorage.getItem(`pmt_last_element_${node.data.dimension}`);
-        if (lastUsed) rawElement = lastUsed;
-    }
-
-    // Try to find matching label case-insensitively
-    const matchedElement =
-      dimElements.find((e) => e.toLowerCase() === rawElement.toLowerCase()) || rawElement;
-
+    // 2. No draft — build workData from node.data
     setWorkData({
       label: node.data.label !== 'New Work' ? node.data.label : '',
       description: node.data.description || '',
-      element: matchedElement,
+      element: resolveElement(''),
       dimension: node.data.dimension || '',
       workType: node.data.workType || 'part-of-element',
       targetOutcome: node.data.targetOutcome || '',
       startDate: formatDate(node.data.startDate),
-      targetCompletion: formatDate(node.data.targetCompletion || node.data.dueDate), // Handle both potential field names
+      targetCompletion: formatDate(node.data.targetCompletion || node.data.dueDate),
       activities: node.data.activities || [],
       resources: {
         timeEstimate: node.data.resources?.timeEstimate || '',
@@ -123,6 +129,9 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
   }, [workData.activities]);
 
   const handleSave = () => {
+    if (saving) return; // Prevent double-submit
+    setSaving(true);
+
     // Check for pending tool input
     let finalTools = [...workData.resources.tools];
     if (newTool.trim() && !finalTools.includes(newTool.trim())) {
@@ -646,9 +655,10 @@ export default function WorkWizardPanel({ node, onClose, onSave }) {
         ) : (
           <button
             onClick={handleSave}
-            className="px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all"
+            disabled={saving}
+            className={`px-6 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 text-white font-medium rounded-lg shadow-lg shadow-emerald-500/30 hover:shadow-emerald-500/50 transition-all ${saving ? 'opacity-50 cursor-not-allowed' : ''}`}
           >
-            Save Project ✓
+            {saving ? 'Saving...' : 'Save Project ✓'}
           </button>
         )}
       </div>
