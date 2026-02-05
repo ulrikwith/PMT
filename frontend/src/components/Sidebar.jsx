@@ -8,6 +8,8 @@ import {
   LayoutDashboard,
   Trash2,
   Sparkles,
+  Sprout,
+  Compass,
 } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
 import { useCreateTask } from '../context/CreateTaskContext';
@@ -137,7 +139,9 @@ export default function Sidebar() {
 
   const navItems = [
     { to: '/board', icon: LayoutDashboard, label: 'Projects' },
-    { to: '/', icon: List, label: 'List', count: taskCounts.total },
+    { to: '/list', icon: List, label: 'List', count: taskCounts.total },
+    { to: '/exploration', icon: Sprout, label: 'Exploration' },
+    { to: '/journey', icon: Compass, label: 'Journey' },
     { to: '/timeline', icon: Calendar, label: 'Timeline' },
     { to: '/readiness', icon: Target, label: 'Readiness' },
     { to: '/review', icon: Sparkles, label: 'Process Review' },

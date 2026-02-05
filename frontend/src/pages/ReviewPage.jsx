@@ -1,16 +1,26 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   Sparkles,
   Brain,
   Zap,
   Moon,
-  Save,
   ChevronRight,
   ChevronLeft,
   CheckCircle2,
+  ChevronDown,
+  Flame,
+  TrendingUp,
 } from 'lucide-react';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
-import { useEffect } from 'react';
+import api from '../services/api';
+
+// Static Tailwind class map — dynamic interpolation doesn't work with Tailwind JIT
+const stepColorClasses = {
+  amber:   { bg: 'bg-amber-500/10',   text: 'text-amber-500',   border: 'border-amber-500/20',   glow: 'text-amber-500/10' },
+  pink:    { bg: 'bg-pink-500/10',    text: 'text-pink-500',    border: 'border-pink-500/20',    glow: 'text-pink-500/10' },
+  indigo:  { bg: 'bg-indigo-500/10',  text: 'text-indigo-500',  border: 'border-indigo-500/20',  glow: 'text-indigo-500/10' },
+  emerald: { bg: 'bg-emerald-500/10', text: 'text-emerald-500', border: 'border-emerald-500/20', glow: 'text-emerald-500/10' },
+};
 
 const REVIEW_STEPS = [
   {
@@ -47,6 +57,78 @@ const REVIEW_STEPS = [
   },
 ];
 
+// Calculate review streak
+function calculateStreak(reviews) {
+  if (reviews.length === 0) return 0;
+  const now = new Date();
+  const oneWeekMs = 7 * 24 * 60 * 60 * 1000;
+  let streak = 0;
+  let checkDate = new Date(now);
+
+  // Go week by week backwards from now
+  for (let i = 0; i < 52; i++) {
+    const weekStart = new Date(checkDate);
+    weekStart.setDate(weekStart.getDate() - weekStart.getDay()); // Start of week (Sunday)
+    weekStart.setHours(0, 0, 0, 0);
+    const weekEnd = new Date(weekStart.getTime() + oneWeekMs);
+
+    const hasReview = reviews.some((r) => {
+      const d = new Date(r.date);
+      return d >= weekStart && d < weekEnd;
+    });
+
+    if (hasReview) {
+      streak++;
+      checkDate = new Date(weekStart.getTime() - 1); // Move to previous week
+    } else if (i === 0) {
+      // Current week might not have a review yet, skip
+      checkDate = new Date(weekStart.getTime() - 1);
+      continue;
+    } else {
+      break;
+    }
+  }
+  return streak;
+}
+
+// Extract common words from text entries
+function extractThemes(reviews, field) {
+  const stopWords = new Set([
+    'the', 'a', 'an', 'and', 'or', 'but', 'in', 'on', 'at', 'to', 'for',
+    'of', 'with', 'by', 'from', 'is', 'was', 'are', 'were', 'be', 'been',
+    'have', 'has', 'had', 'do', 'does', 'did', 'will', 'would', 'could',
+    'should', 'may', 'might', 'i', 'my', 'me', 'we', 'our', 'it', 'its',
+    'that', 'this', 'what', 'which', 'who', 'how', 'when', 'where', 'not',
+    'no', 'so', 'if', 'about', 'up', 'out', 'just', 'like', 'more', 'some',
+    'very', 'really', 'also', 'than', 'into', 'feel', 'felt', 'lot', 'much',
+  ]);
+
+  const wordCounts = {};
+  reviews.forEach((r) => {
+    const text = r.answers?.[field] || '';
+    text.toLowerCase()
+      .replace(/[^a-z\s]/g, '')
+      .split(/\s+/)
+      .filter((w) => w.length > 3 && !stopWords.has(w))
+      .forEach((word) => {
+        wordCounts[word] = (wordCounts[word] || 0) + 1;
+      });
+  });
+
+  return Object.entries(wordCounts)
+    .filter(([, count]) => count >= 2)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([word, count]) => ({ word, count }));
+}
+
+function getWeekLabel(dateStr) {
+  const date = new Date(dateStr);
+  const weekStart = new Date(date);
+  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  return weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 export default function ReviewPage() {
   const { setBreadcrumbs } = useBreadcrumbs();
   const [currentStep, setCurrentStep] = useState(0);
@@ -57,18 +139,43 @@ export default function ReviewPage() {
     intention: '',
   });
   const [isComplete, setIsComplete] = useState(false);
+  const [pastReviews, setPastReviews] = useState([]);
+  const [expandedReview, setExpandedReview] = useState(null);
+  const [loadingReviews, setLoadingReviews] = useState(true);
 
   useEffect(() => {
     setBreadcrumbs([{ label: 'Process Review', icon: Sparkles }]);
     return () => setBreadcrumbs([]);
   }, [setBreadcrumbs]);
 
+  // Load past reviews
+  const loadReviews = useCallback(async () => {
+    setLoadingReviews(true);
+    try {
+      const data = await api.getReviews();
+      setPastReviews(Array.isArray(data) ? data : []);
+    } catch {
+      // Fallback to localStorage
+      try {
+        const local = JSON.parse(localStorage.getItem('pmt_reviews') || '[]');
+        setPastReviews(local);
+      } catch {
+        setPastReviews([]);
+      }
+    } finally {
+      setLoadingReviews(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    loadReviews();
+  }, [loadReviews]);
+
   const handleNext = () => {
     if (currentStep < REVIEW_STEPS.length - 1) {
       setCurrentStep(currentStep + 1);
     } else {
       setIsComplete(true);
-      // Save review logic
       saveReview();
     }
   };
@@ -79,17 +186,34 @@ export default function ReviewPage() {
     }
   };
 
-  const saveReview = () => {
+  const saveReview = async () => {
     const reviewData = {
       date: new Date().toISOString(),
       answers,
     };
-    const reviews = JSON.parse(localStorage.getItem('pmt_reviews') || '[]');
-    localStorage.setItem('pmt_reviews', JSON.stringify([...reviews, reviewData]));
+
+    // Save to localStorage as cache
+    const localReviews = JSON.parse(localStorage.getItem('pmt_reviews') || '[]');
+    localStorage.setItem('pmt_reviews', JSON.stringify([...localReviews, reviewData]));
+
+    // Save to backend
+    try {
+      await api.saveReview(reviewData);
+    } catch (err) {
+      console.error('Failed to save review to backend:', err);
+    }
+
+    // Reload reviews
+    loadReviews();
   };
+
+  const streak = calculateStreak(pastReviews);
+  const alivenessThemes = extractThemes(pastReviews, 'celebration');
+  const frictionThemes = extractThemes(pastReviews, 'friction');
 
   const step = REVIEW_STEPS[currentStep];
   const Icon = step.icon;
+  const colors = stepColorClasses[step.color];
 
   if (isComplete) {
     return (
@@ -118,6 +242,7 @@ export default function ReviewPage() {
 
   return (
     <div className="max-w-3xl mx-auto py-8">
+      {/* Review Form */}
       <div className="mb-12">
         <div className="flex justify-between items-end mb-4">
           <div>
@@ -149,15 +274,13 @@ export default function ReviewPage() {
       <div className="glass-panel rounded-2xl p-8 border border-white/5 relative overflow-hidden">
         {/* Background Icon Glow */}
         <Icon
-          className={`absolute -top-12 -right-12 text-${step.color}-500/10 opacity-20`}
+          className={`absolute -top-12 -right-12 ${colors.glow} opacity-20`}
           size={240}
         />
 
         <div className="relative space-y-8">
           <div className="flex items-center gap-4">
-            <div
-              className={`p-4 rounded-2xl bg-${step.color}-500/10 text-${step.color}-500 border border-${step.color}-500/20 shadow-lg`}
-            >
+            <div className={`p-4 rounded-2xl ${colors.bg} ${colors.text} ${colors.border} shadow-lg`}>
               <Icon size={32} />
             </div>
             <div>
@@ -201,6 +324,121 @@ export default function ReviewPage() {
           </div>
         </div>
       </div>
+
+      {/* Past Reviews Section */}
+      {!loadingReviews && pastReviews.length > 0 && (
+        <div className="mt-16">
+          <div className="border-t border-slate-800 pt-8">
+            {/* Pattern Indicators */}
+            <div className="grid grid-cols-3 gap-4 mb-8">
+              {/* Streak */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Flame size={16} className="text-orange-400" />
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Streak</span>
+                </div>
+                <p className="text-2xl font-bold text-white">
+                  {streak} <span className="text-sm font-normal text-slate-500">weeks</span>
+                </p>
+              </div>
+
+              {/* Aliveness Themes */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <Sparkles size={16} className="text-amber-400" />
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Aliveness</span>
+                </div>
+                {alivenessThemes.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {alivenessThemes.slice(0, 3).map((t) => (
+                      <span key={t.word} className="text-xs bg-amber-500/10 text-amber-300 px-2 py-0.5 rounded-full">
+                        {t.word}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">More reviews needed</p>
+                )}
+              </div>
+
+              {/* Friction Themes */}
+              <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4">
+                <div className="flex items-center gap-2 mb-2">
+                  <TrendingUp size={16} className="text-pink-400" />
+                  <span className="text-xs font-medium text-slate-400 uppercase tracking-wider">Friction</span>
+                </div>
+                {frictionThemes.length > 0 ? (
+                  <div className="flex flex-wrap gap-1">
+                    {frictionThemes.slice(0, 3).map((t) => (
+                      <span key={t.word} className="text-xs bg-pink-500/10 text-pink-300 px-2 py-0.5 rounded-full">
+                        {t.word}
+                      </span>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-xs text-slate-500">More reviews needed</p>
+                )}
+              </div>
+            </div>
+
+            {/* Review History */}
+            <h3 className="text-lg font-bold text-white mb-4">
+              Past Reviews
+              <span className="text-sm font-normal text-slate-500 ml-2">({pastReviews.length})</span>
+            </h3>
+
+            <div className="space-y-3">
+              {pastReviews.map((review, idx) => (
+                <div
+                  key={review.id || idx}
+                  className="bg-slate-900/50 border border-slate-800 rounded-xl overflow-hidden"
+                >
+                  <button
+                    onClick={() => setExpandedReview(expandedReview === idx ? null : idx)}
+                    className="w-full p-4 flex items-center justify-between text-left hover:bg-slate-800/50 transition-colors"
+                  >
+                    <div>
+                      <p className="text-sm font-medium text-white">
+                        Week of {getWeekLabel(review.date)}
+                      </p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {new Date(review.date).toLocaleDateString('en-US', {
+                          weekday: 'long', month: 'long', day: 'numeric',
+                        })}
+                      </p>
+                    </div>
+                    <ChevronDown
+                      size={16}
+                      className={`text-slate-500 transition-transform ${expandedReview === idx ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+
+                  {expandedReview === idx && (
+                    <div className="px-4 pb-4 space-y-3 border-t border-slate-800 pt-3">
+                      {REVIEW_STEPS.map((s) => {
+                        const answer = review.answers?.[s.id];
+                        if (!answer) return null;
+                        const sColors = stepColorClasses[s.color];
+                        return (
+                          <div key={s.id} className="flex gap-3">
+                            <div className={`p-1.5 rounded-lg ${sColors.bg} ${sColors.text} flex-shrink-0 mt-0.5`}>
+                              <s.icon size={14} />
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <p className="text-xs font-medium text-slate-400 mb-1">{s.title}</p>
+                              <p className="text-sm text-slate-300 leading-relaxed">{answer}</p>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

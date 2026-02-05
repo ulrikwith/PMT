@@ -333,6 +333,30 @@ app.delete('/api/visions/:dimension', async (req, res) => {
   }
 });
 
+// --- Reviews ---
+
+app.get('/api/reviews', async (req, res) => {
+  const result = await blueClient.getReviews();
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.post('/api/reviews', async (req, res) => {
+  const { date, answers } = req.body;
+  if (!date || !answers) {
+    return res.status(400).json({ error: 'Review date and answers are required' });
+  }
+  const result = await blueClient.saveReview(req.body);
+  if (result.success) {
+    res.status(201).json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
 // --- GraphQL Passthrough ---
 
 app.post('/api/graphql', async (req, res) => {

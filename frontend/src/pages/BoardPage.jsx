@@ -18,6 +18,8 @@ import WorkWizardPanel from '../components/WorkflowBoard/WorkWizardPanel';
 import ConnectionModal from '../components/WorkflowBoard/ConnectionModal';
 import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
 import MissionControl from '../components/WorkflowBoard/MissionControl';
+import ImpactReflection from '../components/WorkflowBoard/ImpactReflection';
+import BoardErrorBoundary from '../components/WorkflowBoard/BoardErrorBoundary';
 import { useLocation } from 'react-router-dom';
 import { useTasks } from '../context/TasksContext';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
@@ -141,6 +143,7 @@ function BoardPageInner() {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [connectionModal, setConnectionModal] = useState(null);
   const [visionOpen, setVisionOpen] = useState(false);
+  const [reflectionTask, setReflectionTask] = useState(null);
   const initialCenterDone = useRef(false);
 
   const toggleExpand = useCallback((nodeId) => {
@@ -212,6 +215,13 @@ function BoardPageInner() {
   // Memoize dimension IDs to avoid recreation
   const dimensionIds = useMemo(() => DIMENSIONS.map((d) => d.id), []);
 
+  // Memoize node positions to avoid recalculating on every render
+  const nodePositions = useMemo(() => {
+    return dimensionTasks.map((task, cellIndex) =>
+      calculateCellPosition(cellIndex, expandedNodes, dimensionTasks)
+    );
+  }, [dimensionTasks, expandedNodes]);
+
   // Sync Nodes with Tasks - Fixed cell positions
   useEffect(() => {
     if (loading) return;
@@ -221,8 +231,8 @@ function BoardPageInner() {
 
     // Map Tasks to Nodes with FIXED cell positions (based on index)
     dimensionTasks.forEach((task, cellIndex) => {
-      // Calculate position based on cell index and expanded states
-      const position = calculateCellPosition(cellIndex, expandedNodes, dimensionTasks);
+      // Use memoized position
+      const position = nodePositions[cellIndex];
       const isExpanded = expandedNodes.has(task.id);
 
       // Find cross-dimension relationships
@@ -421,15 +431,28 @@ function BoardPageInner() {
       if (selectedNode.id.startsWith('new-work-')) {
         await createTask(taskPayload);
       } else {
+        // Check if all activities are now done (project complete)
+        const allDone = updatedData.activities?.length > 0 &&
+          updatedData.activities.every((a) => a.status === 'done');
+        const wasPreviouslyComplete = selectedNode.data.status === 'complete';
+
         await updateTask(selectedNode.id, taskPayload);
+
+        // Trigger impact reflection if project just became complete
+        if (allDone && !wasPreviouslyComplete) {
+          const fullTask = tasks.find((t) => t.id === selectedNode.id);
+          setReflectionTask({
+            id: selectedNode.id,
+            label: updatedData.label,
+            visionOrigin: fullTask?.visionOrigin,
+          });
+        }
       }
       // Only close on success
       setWizardOpen(false);
     } catch (e) {
       console.error('Save failed:', e);
-      // Show error to user (could add toast notification here)
       alert(`Failed to save project: ${e.message || 'Unknown error'}. Please try again.`);
-      // Keep wizard open so user can retry
     }
   };
 
@@ -544,6 +567,21 @@ function BoardPageInner() {
             onClose={() => setVisionOpen(false)}
           />
         )}
+
+        {reflectionTask && (
+          <ImpactReflection
+            task={reflectionTask}
+            onSave={async (reflectionData) => {
+              try {
+                await updateTask(reflectionTask.id, { impactReflection: reflectionData });
+              } catch (e) {
+                console.error('Failed to save reflection:', e);
+              }
+              setReflectionTask(null);
+            }}
+            onDismiss={() => setReflectionTask(null)}
+          />
+        )}
       </div>
     </div>
   );
@@ -552,9 +590,11 @@ function BoardPageInner() {
 // Wrap with ReactFlowProvider to access useReactFlow hook
 export default function BoardPage() {
   return (
-    <ReactFlowProvider>
-      <BoardPageInner />
-    </ReactFlowProvider>
+    <BoardErrorBoundary>
+      <ReactFlowProvider>
+        <BoardPageInner />
+      </ReactFlowProvider>
+    </BoardErrorBoundary>
   );
 }
 

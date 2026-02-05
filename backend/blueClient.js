@@ -5,6 +5,7 @@ import relationshipService from './services/bluecc/relationships.js';
 import launchService from './services/bluecc/launch.js';
 import commentService from './services/bluecc/comments.js';
 import visionService from './services/bluecc/vision.js';
+import reviewService from './services/bluecc/reviews.js';
 
 // Facade to maintain original API surface
 const blueClient = {
@@ -53,6 +54,10 @@ const blueClient = {
   getAllVisions: () => visionService.getAllVisions(),
   saveVision: (dim, data, elemId) => visionService.saveVision(dim, data, elemId),
   deleteVision: (dim, elemId, type) => visionService.deleteVision(dim, elemId, type),
+
+  // Reviews
+  getReviews: () => reviewService.getReviews(),
+  saveReview: (data) => reviewService.saveReview(data),
 
   // Utils (exposed if needed)
   formatDate: (d) => coreClient.formatDate(d),

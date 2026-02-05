@@ -27,6 +27,8 @@ export function parseTaskText(text) {
             gridPosition: parsed.g || parsed.gridPosition,
             deletedAt: parsed.d || parsed.deletedAt,
             sortOrder: parsed.so || parsed.sortOrder,
+            visionOrigin: parsed.vo || parsed.visionOrigin,
+            impactReflection: parsed.ir || parsed.impactReflection,
           },
         };
       } catch (e) {
@@ -57,6 +59,8 @@ export function buildTaskText(description, metadata) {
     g: metadata.gridPosition,
     d: metadata.deletedAt,
     so: metadata.sortOrder,
+    vo: metadata.visionOrigin,
+    ir: metadata.impactReflection,
   };
 
   Object.keys(compactMeta).forEach((k) => {

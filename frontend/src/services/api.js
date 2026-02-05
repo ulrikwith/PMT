@@ -196,6 +196,39 @@ const api = {
     });
     return response.data;
   },
+
+  // Vision
+  getAllVisions: async () => {
+    const response = await axiosInstance.get('/visions');
+    return response.data;
+  },
+
+  saveVision: async (dimension, data, elementId = null) => {
+    const response = await axiosInstance.put(`/visions/${dimension}`, {
+      elementId,
+      data,
+    });
+    return response.data;
+  },
+
+  deleteVision: async (dimension, elementId = null, type = null) => {
+    const params = {};
+    if (elementId) params.elementId = elementId;
+    if (type) params.type = type;
+    const response = await axiosInstance.delete(`/visions/${dimension}`, { params });
+    return response.data;
+  },
+
+  // Reviews
+  getReviews: async () => {
+    const response = await axiosInstance.get('/reviews');
+    return response.data;
+  },
+
+  saveReview: async (reviewData) => {
+    const response = await axiosInstance.post('/reviews', reviewData);
+    return response.data;
+  },
 };
 
 export default api;
