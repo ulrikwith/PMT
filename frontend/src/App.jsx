@@ -5,6 +5,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExplorationProvider } from './context/ExplorationContext';
 import { VisionProvider } from './context/VisionContext';
+import { AssetProvider } from './context/AssetContext';
 import LoginPage from './pages/LoginPage';
 
 // Lazy load pages
@@ -14,6 +15,7 @@ const TrashPage = lazy(() => import('./pages/TrashPage'));
 const ReviewPage = lazy(() => import('./pages/ReviewPage'));
 const ExplorationPage = lazy(() => import('./pages/ExplorationPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
+const AssetsPage = lazy(() => import('./pages/AssetsPage'));
 
 function LoadingSpinner() {
   return (
@@ -67,6 +69,7 @@ function AppRoutes() {
         <Route index element={<Navigate to="/board" replace />} />
         <Route path="board" element={<BoardPage />} />
         <Route path="list" element={<TasksPage />} />
+        <Route path="assets" element={<AssetsPage />} />
         <Route path="exploration" element={<ExplorationPage />} />
         <Route path="journey" element={<JourneyPage />} />
         <Route path="review" element={<ReviewPage />} />
@@ -83,11 +86,13 @@ function App() {
       <AuthProvider>
         <VisionProvider>
           <ExplorationProvider>
-            <BrowserRouter>
-              <Suspense fallback={<LoadingSpinner />}>
-                <AppRoutes />
-              </Suspense>
-            </BrowserRouter>
+            <AssetProvider>
+              <BrowserRouter>
+                <Suspense fallback={<LoadingSpinner />}>
+                  <AppRoutes />
+                </Suspense>
+              </BrowserRouter>
+            </AssetProvider>
           </ExplorationProvider>
         </VisionProvider>
       </AuthProvider>

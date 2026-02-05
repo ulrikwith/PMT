@@ -8,6 +8,7 @@ import {
   Sparkles,
   Sprout,
   Compass,
+  Package,
 } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
 import { useCreateTask } from '../context/CreateTaskContext';
@@ -138,6 +139,7 @@ export default function Sidebar() {
   const navItems = [
     { to: '/board', icon: LayoutDashboard, label: 'Projects' },
     { to: '/list', icon: List, label: 'List', count: taskCounts.total },
+    { to: '/assets', icon: Package, label: 'Assets' },
     { to: '/exploration', icon: Sprout, label: 'Exploration' },
     { to: '/journey', icon: Compass, label: 'Journey' },
     { to: '/review', icon: Sparkles, label: 'Process Review' },

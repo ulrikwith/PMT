@@ -5,6 +5,7 @@ import blueClient from './blueClient.js';
 import { LAUNCH_PHASES } from './launchData.js';
 import authRoutes from './routes/auth.js';
 import { authenticateToken } from './middleware/auth.js';
+import assetService from './services/assetService.js';
 
 dotenv.config();
 
@@ -403,6 +404,108 @@ app.delete('/api/explorations/:id', async (req, res) => {
   const result = await blueClient.deleteExploration(req.user.todoListId, id);
   if (result.success) {
     res.json({ success: true });
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+// --- Assets ---
+
+app.get('/api/assets', async (req, res) => {
+  const result = await assetService.getAssets(req.user.id, req.query);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.post('/api/assets', async (req, res) => {
+  const { name } = req.body;
+  if (!name || typeof name !== 'string' || !name.trim()) {
+    return res.status(400).json({ error: 'Asset name is required' });
+  }
+  const result = await assetService.createAsset(req.user.id, req.body);
+  if (result.success) {
+    res.status(201).json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.get('/api/assets/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await assetService.getAsset(req.user.id, id);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.put('/api/assets/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await assetService.updateAsset(req.user.id, id, req.body);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.delete('/api/assets/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await assetService.archiveAsset(req.user.id, id);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.post('/api/assets/:id/restore', async (req, res) => {
+  const { id } = req.params;
+  const result = await assetService.restoreAsset(req.user.id, id);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.put('/api/assets/:id/phase', async (req, res) => {
+  const { id } = req.params;
+  const { phase } = req.body;
+  if (!phase) {
+    return res.status(400).json({ error: 'Phase is required' });
+  }
+  const result = await assetService.updatePhase(req.user.id, id, phase);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(result.error.includes('Invalid phase') ? 400 : 500).json({ error: result.error });
+  }
+});
+
+app.post('/api/assets/:id/link-task', async (req, res) => {
+  const { id } = req.params;
+  const { taskId } = req.body;
+  if (!taskId) {
+    return res.status(400).json({ error: 'taskId is required' });
+  }
+  const result = await assetService.linkTask(req.user.id, id, taskId);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.delete('/api/assets/:id/link-task/:taskId', async (req, res) => {
+  const { id, taskId } = req.params;
+  const result = await assetService.unlinkTask(req.user.id, id, taskId);
+  if (result.success) {
+    res.json(result.data);
   } else {
     res.status(500).json({ error: result.error });
   }

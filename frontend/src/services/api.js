@@ -258,6 +258,52 @@ const api = {
     const response = await axiosInstance.delete(`/explorations/${id}`);
     return response.data;
   },
+
+  // Assets
+  getAssets: async (filters = {}) => {
+    const response = await axiosInstance.get('/assets', { params: filters });
+    return response.data;
+  },
+
+  createAsset: async (assetData) => {
+    const response = await axiosInstance.post('/assets', assetData);
+    return response.data;
+  },
+
+  getAsset: async (assetId) => {
+    const response = await axiosInstance.get(`/assets/${assetId}`);
+    return response.data;
+  },
+
+  updateAsset: async (assetId, updates) => {
+    const response = await axiosInstance.put(`/assets/${assetId}`, updates);
+    return response.data;
+  },
+
+  archiveAsset: async (assetId) => {
+    const response = await axiosInstance.delete(`/assets/${assetId}`);
+    return response.data;
+  },
+
+  restoreAsset: async (assetId) => {
+    const response = await axiosInstance.post(`/assets/${assetId}/restore`);
+    return response.data;
+  },
+
+  updateAssetPhase: async (assetId, phase) => {
+    const response = await axiosInstance.put(`/assets/${assetId}/phase`, { phase });
+    return response.data;
+  },
+
+  linkTaskToAsset: async (assetId, taskId) => {
+    const response = await axiosInstance.post(`/assets/${assetId}/link-task`, { taskId });
+    return response.data;
+  },
+
+  unlinkTaskFromAsset: async (assetId, taskId) => {
+    const response = await axiosInstance.delete(`/assets/${assetId}/link-task/${taskId}`);
+    return response.data;
+  },
 };
 
 export default api;
