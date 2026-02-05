@@ -172,11 +172,6 @@ const api = {
     return response.data;
   },
 
-  getReadiness: async () => {
-    const response = await axiosInstance.get('/launch/readiness');
-    return response.data;
-  },
-
   exportData: async () => {
     // Trigger download directly
     window.location.href = `${API_BASE_URL}/export?format=json`;
@@ -227,6 +222,27 @@ const api = {
 
   saveReview: async (reviewData) => {
     const response = await axiosInstance.post('/reviews', reviewData);
+    return response.data;
+  },
+
+  // Explorations
+  getExplorations: async () => {
+    const response = await axiosInstance.get('/explorations');
+    return response.data;
+  },
+
+  saveExploration: async (explorationData) => {
+    const response = await axiosInstance.post('/explorations', explorationData);
+    return response.data;
+  },
+
+  updateExploration: async (id, explorationData) => {
+    const response = await axiosInstance.put(`/explorations/${id}`, explorationData);
+    return response.data;
+  },
+
+  deleteExploration: async (id) => {
+    const response = await axiosInstance.delete(`/explorations/${id}`);
     return response.data;
   },
 };

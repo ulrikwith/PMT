@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   Sparkles,
   Brain,
@@ -207,9 +207,9 @@ export default function ReviewPage() {
     loadReviews();
   };
 
-  const streak = calculateStreak(pastReviews);
-  const alivenessThemes = extractThemes(pastReviews, 'celebration');
-  const frictionThemes = extractThemes(pastReviews, 'friction');
+  const streak = useMemo(() => calculateStreak(pastReviews), [pastReviews]);
+  const alivenessThemes = useMemo(() => extractThemes(pastReviews, 'celebration'), [pastReviews]);
+  const frictionThemes = useMemo(() => extractThemes(pastReviews, 'friction'), [pastReviews]);
 
   const step = REVIEW_STEPS[currentStep];
   const Icon = step.icon;

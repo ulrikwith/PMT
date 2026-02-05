@@ -357,6 +357,50 @@ app.post('/api/reviews', async (req, res) => {
   }
 });
 
+// --- Explorations ---
+
+app.get('/api/explorations', async (req, res) => {
+  const result = await blueClient.getAllExplorations();
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.post('/api/explorations', async (req, res) => {
+  const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ error: 'Exploration title is required' });
+  }
+  const result = await blueClient.saveExploration(req.body);
+  if (result.success) {
+    res.status(201).json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.put('/api/explorations/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await blueClient.updateExploration(id, req.body);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.delete('/api/explorations/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await blueClient.deleteExploration(id);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
 // --- GraphQL Passthrough ---
 
 app.post('/api/graphql', async (req, res) => {

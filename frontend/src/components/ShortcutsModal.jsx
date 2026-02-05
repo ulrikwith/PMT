@@ -1,5 +1,5 @@
-import React, { useEffect } from 'react';
-import { X, Command, Search, Plus, Calendar, Target, Layout } from 'lucide-react';
+import React from 'react';
+import { X, Command, Search, Layout } from 'lucide-react';
 
 export default function ShortcutsModal({ isOpen, onClose }) {
   if (!isOpen) return null;
@@ -28,18 +28,8 @@ export default function ShortcutsModal({ isOpen, onClose }) {
           />
           <div className="h-px bg-white/5 my-2"></div>
           <ShortcutRow
-            keys={['Cmd', 'Shift', 'L']}
-            description="Go to Timeline"
-            icon={<Calendar size={14} />}
-          />
-          <ShortcutRow
-            keys={['Cmd', 'Shift', 'R']}
-            description="Go to Readiness"
-            icon={<Target size={14} />}
-          />
-          <ShortcutRow
             keys={['Cmd', 'Shift', 'T']}
-            description="Go to Tasks"
+            description="Go to Projects"
             icon={<Layout size={14} />}
           />
         </div>

@@ -1,4 +1,3 @@
-import blueClient from '../blueClient.js';
 import coreClient from './bluecc/core.js';
 
 // Configuration

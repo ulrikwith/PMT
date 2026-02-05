@@ -44,7 +44,8 @@ class ReviewService {
             const base64Data = todo.text.replace(/<[^>]*>/g, '').replace(/\s/g, '');
             const json = Buffer.from(base64Data, 'base64').toString('utf-8');
             return { id: todo.id, ...JSON.parse(json) };
-          } catch {
+          } catch (parseErr) {
+            console.error(`Failed to parse review todo ${todo.id}:`, parseErr.message);
             return null;
           }
         })

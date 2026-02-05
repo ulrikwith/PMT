@@ -27,16 +27,6 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
       }
 
       // Navigation Shortcuts
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'L') {
-        e.preventDefault();
-        navigate('/timeline');
-      }
-
-      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'R') {
-        e.preventDefault();
-        navigate('/readiness');
-      }
-
       if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'T') {
         e.preventDefault();
         navigate('/');
@@ -45,5 +35,5 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [navigate]);
+  }, [navigate, toggleShortcuts]);
 }

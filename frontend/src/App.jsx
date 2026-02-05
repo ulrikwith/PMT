@@ -9,8 +9,6 @@ import { VisionProvider } from './context/VisionContext';
 
 // Lazy load pages
 const TasksPage = lazy(() => import('./pages/TasksPage'));
-const TimelinePage = lazy(() => import('./pages/TimelinePage'));
-const ReadinessPage = lazy(() => import('./pages/ReadinessPage'));
 const BoardPage = lazy(() => import('./pages/BoardPage'));
 const TrashPage = lazy(() => import('./pages/TrashPage'));
 const ReviewPage = lazy(() => import('./pages/ReviewPage'));
@@ -49,10 +47,8 @@ function AppRoutes() {
         <Route index element={<Navigate to="/board" replace />} />
         <Route path="board" element={<BoardPage />} />
         <Route path="list" element={<TasksPage />} />
-        <Route path="timeline" element={<TimelinePage />} />
         <Route path="exploration" element={<ExplorationPage />} />
         <Route path="journey" element={<JourneyPage />} />
-        <Route path="readiness" element={<ReadinessPage />} />
         <Route path="review" element={<ReviewPage />} />
         <Route path="trash" element={<TrashPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />

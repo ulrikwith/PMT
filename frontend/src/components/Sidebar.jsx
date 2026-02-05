@@ -2,8 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { NavLink, useSearchParams } from 'react-router-dom';
 import {
   List,
-  Calendar,
-  Target,
   ChevronRight,
   LayoutDashboard,
   Trash2,
@@ -142,8 +140,6 @@ export default function Sidebar() {
     { to: '/list', icon: List, label: 'List', count: taskCounts.total },
     { to: '/exploration', icon: Sprout, label: 'Exploration' },
     { to: '/journey', icon: Compass, label: 'Journey' },
-    { to: '/timeline', icon: Calendar, label: 'Timeline' },
-    { to: '/readiness', icon: Target, label: 'Readiness' },
     { to: '/review', icon: Sparkles, label: 'Process Review' },
   ];
 

@@ -1,3 +1,17 @@
+/**
+ * VisionContext - North Star Purpose Statements
+ *
+ * Stores high-level vision/purpose text per dimension (content, practice, etc.).
+ * Persisted to Blue.cc via the backend vision service (PMT_VISION tagged todos).
+ *
+ * Architecture notes (three-system vision architecture):
+ * - This context handles WHAT you want to achieve at the dimension level
+ * - ExplorationContext handles the creative journey of discovering WHAT to create
+ * - Tasks with visionOrigin metadata link work items back to explorations
+ *
+ * State shape: { [dimensionId]: { overall: string, elements: { [elementId]: { innerGoals, outerGoals } } } }
+ * Consumers: MissionControl (BoardPage), JourneyPage
+ */
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
 import api from '../services/api';
 

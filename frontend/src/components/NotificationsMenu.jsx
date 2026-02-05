@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Bell, Check, Clock } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useTasks } from '../context/TasksContext';
@@ -32,11 +32,15 @@ const DIMENSIONS = [
 ];
 
 export default function NotificationsMenu() {
-  const { tasks } = useTasks();
+  const { tasks, loading } = useTasks();
   const [isOpen, setIsOpen] = useState(false);
-  const [tasksOfDay, setTasksOfDay] = useState([]);
   const menuRef = useRef(null);
   const navigate = useNavigate();
+
+  const tasksOfDay = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return tasks.filter((t) => t.dueDate === today && t.status !== 'Done');
+  }, [tasks]);
 
   useEffect(() => {
     // Close on click outside
@@ -48,15 +52,6 @@ export default function NotificationsMenu() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  // Compute tasksOfDay reactively whenever tasks change or menu opens
-  useEffect(() => {
-    if (isOpen) {
-      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD
-      const dueToday = tasks.filter((t) => t.dueDate === today && t.status !== 'Done');
-      setTasksOfDay(dueToday);
-    }
-  }, [isOpen, tasks]);
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);

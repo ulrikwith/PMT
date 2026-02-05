@@ -11,7 +11,7 @@ jest.unstable_mockModule('../services/bluecc/tasks.js', () => ({
   },
 }));
 
-const { default: relationshipService } = await import('../services/bluecc/relationships.ts');
+const { default: relationshipService } = await import('../services/bluecc/relationships.js');
 
 describe('RelationshipService', () => {
   beforeEach(() => {

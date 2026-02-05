@@ -3,9 +3,9 @@ import taskService from './services/bluecc/tasks.js';
 import tagService from './services/bluecc/tags.js';
 import relationshipService from './services/bluecc/relationships.js';
 import launchService from './services/bluecc/launch.js';
-import commentService from './services/bluecc/comments.js';
 import visionService from './services/bluecc/vision.js';
 import reviewService from './services/bluecc/reviews.js';
+import explorationService from './services/bluecc/exploration.js';
 
 // Facade to maintain original API surface
 const blueClient = {
@@ -39,11 +39,6 @@ const blueClient = {
   getTaskRelationships: (id) => relationshipService.getTaskRelationships(id),
   deleteRelationship: (id) => relationshipService.deleteRelationship(id),
 
-  // Comments
-  createComment: (id, t, h) => commentService.createComment(id, t, h),
-  getCommentsForTodo: (id) => commentService.getCommentsForTodo(id),
-  deleteComment: (id) => commentService.deleteComment(id),
-
   // Launch/Milestones
   linkTaskToMilestone: (ti, mi) => launchService.linkTaskToMilestone(ti, mi),
   getTasksForMilestone: (id) => launchService.getTasksForMilestone(id),
@@ -58,6 +53,12 @@ const blueClient = {
   // Reviews
   getReviews: () => reviewService.getReviews(),
   saveReview: (data) => reviewService.saveReview(data),
+
+  // Explorations
+  getAllExplorations: () => explorationService.getAllExplorations(),
+  saveExploration: (data) => explorationService.saveExploration(data),
+  updateExploration: (id, data) => explorationService.updateExploration(id, data),
+  deleteExploration: (id) => explorationService.deleteExploration(id),
 
   // Utils (exposed if needed)
   formatDate: (d) => coreClient.formatDate(d),

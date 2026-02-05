@@ -107,7 +107,7 @@ class CustomFieldService {
       text: textValue,
     };
 
-    return coreClient.query(mutation, { input });
+    return await coreClient.query(mutation, { input });
   }
 }
 

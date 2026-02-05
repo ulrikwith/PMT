@@ -20,7 +20,7 @@ import DimensionTabs from '../components/WorkflowBoard/DimensionTabs';
 import MissionControl from '../components/WorkflowBoard/MissionControl';
 import ImpactReflection from '../components/WorkflowBoard/ImpactReflection';
 import BoardErrorBoundary from '../components/WorkflowBoard/BoardErrorBoundary';
-import { useLocation } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useTasks } from '../context/TasksContext';
 import { useBreadcrumbs } from '../context/BreadcrumbContext';
 import { DIMENSIONS, getDimensionConfig } from '../constants/taxonomy';
@@ -135,7 +135,12 @@ function BoardPageInner() {
   } = useTasks();
   const { setBreadcrumbs } = useBreadcrumbs();
   const { setCenter, fitView } = useReactFlow();
-  const [activeDimension, setActiveDimension] = useState('content');
+  const [searchParams] = useSearchParams();
+  const [activeDimension, setActiveDimension] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const dim = params.get('dimension')?.toLowerCase();
+    return dim && DIMENSIONS.some((d) => d.id === dim) ? dim : 'content';
+  });
   const [nodes, setNodes, onNodesChange] = useNodesState([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState([]);
   const [expandedNodes, setExpandedNodes] = useState(new Set());
@@ -145,6 +150,17 @@ function BoardPageInner() {
   const [visionOpen, setVisionOpen] = useState(false);
   const [reflectionTask, setReflectionTask] = useState(null);
   const initialCenterDone = useRef(false);
+
+  // Sync dimension from URL params when they change (e.g., Sidebar navigation)
+  /* eslint-disable react-hooks/set-state-in-effect -- Intentional: syncing external URL state to React state */
+  useEffect(() => {
+    const dimFromUrl = searchParams.get('dimension')?.toLowerCase();
+    if (dimFromUrl && DIMENSIONS.some((d) => d.id === dimFromUrl)) {
+      setActiveDimension(dimFromUrl);
+      initialCenterDone.current = false;
+    }
+  }, [searchParams]);
+  /* eslint-enable react-hooks/set-state-in-effect */
 
   const toggleExpand = useCallback((nodeId) => {
     setExpandedNodes((prev) => {

@@ -1,5 +1,4 @@
-import { jest } from '@jest/globals';
-import { parseTaskText, buildTaskText } from '../services/bluecc/utils.ts';
+import { parseTaskText, buildTaskText } from '../services/bluecc/utils.js';
 
 describe('Utils Service', () => {
   describe('parseTaskText', () => {
