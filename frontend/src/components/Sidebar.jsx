@@ -9,6 +9,7 @@ import {
   Sprout,
   Compass,
   Package,
+  StickyNote,
 } from 'lucide-react';
 import { useTasks } from '../context/TasksContext';
 import { useCreateTask } from '../context/CreateTaskContext';
@@ -267,6 +268,23 @@ export default function Sidebar() {
             </div>
           );
         })}
+      </div>
+
+      {/* Stickies */}
+      <div className="pt-2">
+        <NavLink
+          to="/stickies"
+          className={({ isActive }) =>
+            `w-full flex items-center gap-3 px-4 py-2.5 rounded-lg transition-all font-medium ${
+              isActive
+                ? 'bg-amber-500/10 border border-amber-500/20 text-amber-400'
+                : 'text-slate-400 hover:text-amber-400 hover:bg-amber-500/10'
+            }`
+          }
+        >
+          <StickyNote size={18} />
+          <span>Stickies</span>
+        </NavLink>
       </div>
 
       {/* Bottom section - Trash */}

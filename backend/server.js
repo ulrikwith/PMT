@@ -420,6 +420,50 @@ app.delete('/api/explorations/:id', async (req, res) => {
   }
 });
 
+// --- Stickies ---
+
+app.get('/api/stickies', async (req, res) => {
+  const result = await blueClient.getAllStickies(req.user.todoListId);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.post('/api/stickies', async (req, res) => {
+  const { title } = req.body;
+  if (!title || typeof title !== 'string' || !title.trim()) {
+    return res.status(400).json({ error: 'Sticky title is required' });
+  }
+  const result = await blueClient.saveSticky(req.user.todoListId, req.body);
+  if (result.success) {
+    res.status(201).json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.put('/api/stickies/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await blueClient.updateSticky(req.user.todoListId, id, req.body);
+  if (result.success) {
+    res.json(result.data);
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
+app.delete('/api/stickies/:id', async (req, res) => {
+  const { id } = req.params;
+  const result = await blueClient.deleteSticky(req.user.todoListId, id);
+  if (result.success) {
+    res.json({ success: true });
+  } else {
+    res.status(500).json({ error: result.error });
+  }
+});
+
 // --- Assets ---
 
 app.get('/api/assets', async (req, res) => {
@@ -527,6 +571,9 @@ app.delete('/api/assets/:id/link-task/:taskId', async (req, res) => {
 
 app.post('/api/graphql', async (req, res) => {
   const { query, variables } = req.body;
+  if (!query || typeof query !== 'string') {
+    return res.status(400).json({ error: 'GraphQL query string is required' });
+  }
   const result = await blueClient.executeQuery(query, variables);
   if (result.success) {
     res.json(result.data);

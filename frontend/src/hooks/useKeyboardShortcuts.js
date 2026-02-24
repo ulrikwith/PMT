@@ -6,8 +6,10 @@ export default function useKeyboardShortcuts(toggleShortcuts) {
 
   useEffect(() => {
     function handleKeyDown(e) {
-      // Ignore if input/textarea is focused
-      if (['INPUT', 'TEXTAREA'].includes(document.activeElement.tagName)) {
+      // Ignore if input/textarea/contentEditable is focused
+      const el = document.activeElement;
+      if (!el) return;
+      if (['INPUT', 'TEXTAREA'].includes(el.tagName) || el.isContentEditable) {
         return;
       }
 

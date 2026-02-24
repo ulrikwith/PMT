@@ -186,8 +186,20 @@ const api = {
   },
 
   exportData: async () => {
-    // Trigger download directly
-    window.location.href = `${API_BASE_URL}/export?format=json`;
+    const response = await axiosInstance.get('/export', {
+      params: { format: 'json' },
+      responseType: 'blob',
+    });
+    // Trigger download via blob URL
+    const blob = new Blob([response.data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `pmt-export-${Date.now()}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   },
 
   // Workspaces
@@ -302,6 +314,27 @@ const api = {
 
   unlinkTaskFromAsset: async (assetId, taskId) => {
     const response = await axiosInstance.delete(`/assets/${assetId}/link-task/${taskId}`);
+    return response.data;
+  },
+
+  // Stickies
+  getStickies: async () => {
+    const response = await axiosInstance.get('/stickies');
+    return response.data;
+  },
+
+  saveSticky: async (stickyData) => {
+    const response = await axiosInstance.post('/stickies', stickyData);
+    return response.data;
+  },
+
+  updateSticky: async (id, stickyData) => {
+    const response = await axiosInstance.put(`/stickies/${id}`, stickyData);
+    return response.data;
+  },
+
+  deleteSticky: async (id) => {
+    const response = await axiosInstance.delete(`/stickies/${id}`);
     return response.data;
   },
 };

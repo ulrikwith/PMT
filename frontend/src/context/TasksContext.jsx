@@ -135,11 +135,13 @@ export function TasksProvider({ children }) {
   };
 
   const deleteRelationship = async (relationshipId) => {
-    // Snapshot for rollback
-    const previousRelationships = [...relationships];
+    let previousRelationships;
 
-    // Optimistic delete
-    setRelationships((prev) => prev.filter((r) => r.id !== relationshipId));
+    // Optimistic delete — capture snapshot inside functional update
+    setRelationships((prev) => {
+      previousRelationships = prev;
+      return prev.filter((r) => r.id !== relationshipId);
+    });
 
     try {
       await api.deleteRelationship(relationshipId);
@@ -177,10 +179,13 @@ export function TasksProvider({ children }) {
   };
 
   const emptyTrash = async (olderThanDays = null) => {
-    const previousTasks = [...tasks];
+    let previousTasks;
 
-    // Optimistically remove all deleted tasks
-    setTasks((prev) => prev.filter((t) => !t.deletedAt));
+    // Optimistically remove all deleted tasks — capture inside functional update
+    setTasks((prev) => {
+      previousTasks = prev;
+      return prev.filter((t) => !t.deletedAt);
+    });
 
     try {
       await api.emptyTrash(olderThanDays);

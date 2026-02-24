@@ -45,21 +45,24 @@ export function ExplorationProvider({ children }) {
             const parsed = JSON.parse(saved);
             setVisions(parsed);
             // Attempt to sync any un-synced local visions to backend
-            for (const v of parsed) {
+            let anyNewSync = false;
+            const synced = parsed.map((v) => ({ ...v })); // Avoid mutating parsed in-place
+            for (const v of synced) {
               if (!v.blueId) {
                 try {
                   const result = await api.saveExploration(v);
                   if (result.blueId) {
                     v.blueId = result.blueId;
+                    anyNewSync = true;
                   }
                 } catch (syncErr) {
                   console.warn('Failed to sync local exploration to backend, will retry next session:', syncErr.message);
                 }
               }
             }
-            if (parsed.some((v) => v.blueId)) {
-              setVisions([...parsed]);
-              localStorage.setItem('pmt_visions', JSON.stringify(parsed));
+            if (anyNewSync) {
+              setVisions(synced);
+              localStorage.setItem('pmt_visions', JSON.stringify(synced));
             }
           }
         }

@@ -6,6 +6,7 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import { ExplorationProvider } from './context/ExplorationContext';
 import { VisionProvider } from './context/VisionContext';
 import { AssetProvider } from './context/AssetContext';
+import { StickiesProvider } from './context/StickiesContext';
 import LoginPage from './pages/LoginPage';
 
 // Lazy load pages
@@ -16,6 +17,7 @@ const ReviewPage = lazy(() => import('./pages/ReviewPage'));
 const ExplorationPage = lazy(() => import('./pages/ExplorationPage'));
 const JourneyPage = lazy(() => import('./pages/JourneyPage'));
 const AssetsPage = lazy(() => import('./pages/AssetsPage'));
+const StickiesPage = lazy(() => import('./pages/StickiesPage'));
 
 function LoadingSpinner() {
   return (
@@ -73,6 +75,7 @@ function AppRoutes() {
         <Route path="exploration" element={<ExplorationPage />} />
         <Route path="journey" element={<JourneyPage />} />
         <Route path="review" element={<ReviewPage />} />
+        <Route path="stickies" element={<StickiesPage />} />
         <Route path="trash" element={<TrashPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
@@ -87,11 +90,13 @@ function App() {
         <VisionProvider>
           <ExplorationProvider>
             <AssetProvider>
-              <BrowserRouter>
-                <Suspense fallback={<LoadingSpinner />}>
-                  <AppRoutes />
-                </Suspense>
-              </BrowserRouter>
+              <StickiesProvider>
+                <BrowserRouter>
+                  <Suspense fallback={<LoadingSpinner />}>
+                    <AppRoutes />
+                  </Suspense>
+                </BrowserRouter>
+              </StickiesProvider>
             </AssetProvider>
           </ExplorationProvider>
         </VisionProvider>

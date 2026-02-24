@@ -38,6 +38,7 @@ class TagService {
       const result = await coreClient.query(query);
 
       if (!result.success) {
+        console.warn('getTags API failed, falling back to defaults:', result.error);
         return { success: true, data: Object.values(DIMENSION_TAGS) };
       }
 
@@ -50,6 +51,7 @@ class TagService {
         })),
       };
     } catch (error) {
+      console.warn('getTags threw, falling back to defaults:', error.message);
       return { success: true, data: Object.values(DIMENSION_TAGS) };
     }
   }

@@ -6,6 +6,7 @@ import launchService from './services/bluecc/launch.js';
 import visionService from './services/bluecc/vision.js';
 import reviewService from './services/bluecc/reviews.js';
 import explorationService from './services/bluecc/exploration.js';
+import stickiesService from './services/bluecc/stickies.js';
 
 // Facade to maintain original API surface
 // Sprint 2: todoListId is now the first parameter for all data-access methods
@@ -35,7 +36,7 @@ const blueClient = {
   addTagToTask: (id, n) => tagService.addTagToTask(id, n),
 
   // Relationships
-  createTaskRelationship: (todoListId, f, t, y, l) => relationshipService.createTaskRelationship(todoListId, f, t, y, l),
+  createTaskRelationship: (todoListId, fromTaskId, toTaskId, type, label) => relationshipService.createTaskRelationship(todoListId, fromTaskId, toTaskId, type, label),
   getAllRelationships: (todoListId) => relationshipService.getAllRelationships(todoListId),
   getTaskRelationships: (todoListId, id) => relationshipService.getTaskRelationships(todoListId, id),
   deleteRelationship: (todoListId, id) => relationshipService.deleteRelationship(todoListId, id),
@@ -60,6 +61,12 @@ const blueClient = {
   saveExploration: (todoListId, data) => explorationService.saveExploration(todoListId, data),
   updateExploration: (todoListId, id, data) => explorationService.updateExploration(todoListId, id, data),
   deleteExploration: (todoListId, id) => explorationService.deleteExploration(todoListId, id),
+
+  // Stickies
+  getAllStickies: (todoListId) => stickiesService.getAllStickies(todoListId),
+  saveSticky: (todoListId, data) => stickiesService.saveSticky(todoListId, data),
+  updateSticky: (todoListId, id, data) => stickiesService.updateSticky(todoListId, id, data),
+  deleteSticky: (todoListId, id) => stickiesService.deleteSticky(todoListId, id),
 
   // Utils (exposed if needed)
   formatDate: (d) => coreClient.formatDate(d),

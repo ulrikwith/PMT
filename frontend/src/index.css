@@ -60,3 +60,39 @@ input[type="date"]::-webkit-calendar-picker-indicator {
     display: none !important;
   }
 }
+
+/* TipTap Editor Styles */
+.tiptap-editor {
+  font-family: 'Inter', sans-serif;
+  line-height: 1.6;
+}
+
+.tiptap-editor h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  line-height: 1.3;
+}
+
+.tiptap-editor h2 {
+  font-size: 1.2rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  line-height: 1.3;
+}
+
+.tiptap-editor p {
+  margin-bottom: 0.4rem;
+}
+
+.tiptap-editor p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  float: left;
+  opacity: 0.4;
+  pointer-events: none;
+  height: 0;
+}
+
+.tiptap-editor u {
+  text-decoration: underline;
+}

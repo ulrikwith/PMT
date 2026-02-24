@@ -16,7 +16,11 @@ class CustomFieldService {
 
   async ensureInitialized() {
     if (this.initializationPromise) return this.initializationPromise;
-    this.initializationPromise = this._initialize();
+    this.initializationPromise = this._initialize().catch((err) => {
+      // Clear promise so next call retries instead of hanging forever
+      this.initializationPromise = null;
+      throw err;
+    });
     return this.initializationPromise;
   }
 
